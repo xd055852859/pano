@@ -1,0 +1,34 @@
+@mixin p-number($padding) {
+  padding-left: $padding;
+  padding-right: $padding;
+  box-sizing: border-box;
+}
+@mixin flex($justify, $align, $wrap) {
+  display: flex;
+  @if $justify {
+    justify-content: $justify;
+  }
+  @if $align {
+    align-items: $align;
+  }
+  @if $wrap {
+    flex-wrap: wrap;
+  }
+}
+@mixin scroll() {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+@mixin img-fit($fit) {
+  width: 100%;
+  height: 100%;
+  object-fit: $fit;
+}
+@mixin more-toLong($line) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: $line; /*行数*/
+  -webkit-box-orient: vertical;
+}
+
