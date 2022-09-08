@@ -1,38 +1,52 @@
 <script setup lang="ts">
 import { ElMessage } from "element-plus";
-import panoJpg from "@/assets/img/pano1.jpg";
+import loadGif from "@/assets/img/load.gif";
+import { Close } from "@element-plus/icons-vue";
 import appStore from "@/store";
 import { storeToRefs } from "pinia";
 import axios from "axios";
 import { ResultProps } from "@/interface/Common";
+import draggable from "vuedraggable";
 import api from "@/services/api";
-const { sceneObj, panoConfig, sceneConfig } = storeToRefs(appStore.panoStore);
+const { sceneObj, panoConfig, sceneConfig, sceneList } = storeToRefs(
+  appStore.panoStore
+);
 const { setSceneKey, delSceneObj, setSceneConfig } = appStore.panoStore;
 const { token } = storeToRefs(appStore.authStore);
-const { setLeftNum, setHeaderNum } = appStore.commonStore;
-
+const { createState, createFile } = storeToRefs(appStore.commonStore);
+const {
+  setLeftNum,
+  setHeaderNum,
+  setConfigNum,
+  setCreateState,
+  setCreateFile,
+} = appStore.commonStore;
+const socket: any = inject("socket");
 const deleteVisible = ref<boolean>(false);
 const nameVisible = ref<boolean>(false);
 const nameInput = ref<string>("");
 const deleteKey = ref<string>("");
-const tempFiles = ref<any>([]);
+const drag = ref<boolean>(false);
 const chooseScene = (key: string) => {
   setLeftNum(1);
   setHeaderNum(0);
+  setConfigNum("1");
   setSceneKey(key);
 };
-const uploadSceneImg = (e) => {
-  tempFiles.value = [...tempFiles.value, ...e.target.files];
-};
-const createScene = async () => {
+const uploadSceneImg = async (files) => {
   if (panoConfig.value) {
     const formData = new FormData();
-    if (tempFiles.value.length === 0) {
+    if (files.length === 0) {
       return;
     }
     // 遍历当前临时文件List,将上传文件添加到FormData对象中
-    tempFiles.value.forEach((item) => formData.append("images", item));
+    [...files].forEach((item) => formData.append("images", item));
     formData.append("panoKey", panoConfig.value?._key);
+    ElMessage({
+      message: "生成场景中...",
+      type: "warning",
+      duration: 3000,
+    });
     // 调用后端接口,发送请求
     const createRes = (await axios.post(
       "https://panodata2.qingtime.cn/scene/new",
@@ -53,28 +67,35 @@ const createScene = async () => {
         type: "success",
         duration: 1000,
       });
-      setLeftNum(1);
-      setSceneKey(createRes.data.data);
+      setCreateState(true);
+      setCreateFile(files[0]);
     }
   }
 };
 const delScene = async () => {
   deleteVisible.value = false;
   delSceneObj(deleteKey.value);
-  deleteKey.value = "";
   ElMessage({
     message: "删除场景成功",
     type: "success",
     duration: 1000,
   });
   await api.request.delete("scene", {
-    sceneKey: sceneConfig.value?._key,
+    sceneKey: deleteKey.value,
+  });
+  deleteKey.value = "";
+};
+const sortScene = () => {
+  let sceneArr = sceneList.value.map((item) => item._key);
+  api.request.patch("scene/order", {
+    panoKey: panoConfig.value?._key,
+    sceneArr: sceneArr,
   });
 };
 const saveName = async () => {
   const saveSceneRes = (await api.request.patch("scene", {
     name: nameInput.value,
-    sceneKey:sceneConfig.value?._key
+    sceneKey: sceneConfig.value?._key,
   })) as ResultProps;
   if (saveSceneRes.msg === "OK") {
     ElMessage({
@@ -92,9 +113,23 @@ const saveName = async () => {
 };
 </script>
 <template>
-  <div class="pano-left-container">
+  <div class="pano-left-container" @mouseleave="sortScene">
     <div class="button">
-      <el-button
+      <div class="upload-button">
+        <el-button type="success" round color="#86b93f" style="color: #fff"
+          >+ 新场景</el-button
+        >
+        <input
+          type="file"
+          accept=".png,.jpg,.jpeg"
+          @change="
+            //@ts-ignore
+            uploadSceneImg($event.target.files)
+          "
+          class="upload-img"
+        />
+      </div>
+      <!-- <el-button
         type="success"
         round
         color="#86b93f"
@@ -109,44 +144,82 @@ const saveName = async () => {
         accept=".png,.jpg,.jpeg"
         multiple
         @change="uploadSceneImg"
-      />
+      /> -->
     </div>
-    <div
-      class="screen"
-      v-for="(value, key) in sceneObj"
-      :key="`scene${key}`"
-      @click="chooseScene(value._key)"
+    <!--  -->
+    <div v-if="createState" class="screen">
+      <img :src="createFile" alt="" v-if="createFile" />
+      <!-- <img :src="sceneList&&sceneList[0].cover ? sceneList[0].cover : ''" alt="" /> -->
+      <div class="screen-mark single-to-long">
+        <img :src="loadGif" alt="" />
+        <div>场景生成中...</div>
+      </div>
+    </div>
+    <draggable
+      v-model="sceneList"
+      @start="drag = true"
+      @end="drag = false"
+      item-key="index"
+      class="screen-container"
+      :style="{
+        height: createState ? 'calc(100% - 200px)' : 'calc(100% - 80px)',
+      }"
     >
-      <img :src="value.cover" alt="" />
-      <div v-if="sceneConfig?._key === value._key" class="screen-bottom">
+      <template #item="{ element }">
         <div
-          @click="
-            nameVisible = true;
-            nameInput = value.name;
+          class="screen"
+          @click="chooseScene(element._key)"
+          :style="
+            element._key === sceneConfig?._key
+              ? { border: '3px solid #86b93f' }
+              : {}
           "
+        >
+          <img :src="element.cover" alt="" />
+          <div
+            class="screen-icon single-to-long"
+            @click="
+              $event.stopPropagation();
+              deleteVisible = true;
+              deleteKey = element._key;
+            "
+          >
+            <el-icon :size="20">
+              <Close />
+            </el-icon>
+          </div>
+          <div
+            class="screen-bottom single-to-long"
+            @click="
+              $event.stopPropagation();
+              nameVisible = true;
+              nameInput = element.name;
+            "
+          >
+            <!-- <div
+         
         >
           重命名
         </div>
         <div
-          @click="
-            deleteVisible = true;
-            deleteKey = value._key;
-          "
+        
         >
           删除
+        </div> -->
+            {{ element.name }}
+          </div>
         </div>
-      </div>
-      <div class="screen-title single-to-long">{{ value.name }}</div>
-    </div>
+      </template>
+    </draggable>
   </div>
   <el-dialog v-model="deleteVisible" title="删除提示" width="30%">
-    <span
-      >{{
+    <div style="padding: 20px">
+      {{
         Object.keys(sceneObj).length === 1
           ? "当前场景为最后场景,若删除将删除全景，"
           : ""
-      }}是否删除该场景</span
-    >
+      }}是否删除该场景
+    </div>
     <template #footer>
       <span class="dialog-footer">
         <el-button @click="deleteVisible = false">取消</el-button>
@@ -154,11 +227,13 @@ const saveName = async () => {
       </span>
     </template>
   </el-dialog>
-  <el-dialog v-model="nameVisible" title="删除提示" width="30%">
-    <el-input v-model="nameInput" placeholder="请输入场景名称" />
+  <el-dialog v-model="nameVisible" title="重命名" width="30%">
+    <div style="padding: 20px">
+      <el-input v-model="nameInput" placeholder="请输入场景名称" />
+    </div>
     <template #footer>
       <span class="dialog-footer">
-        <el-button @click="deleteVisible = false">取消</el-button>
+        <el-button @click="nameVisible = false">取消</el-button>
         <el-button type="primary" @click="saveName()">确认</el-button>
       </span>
     </template>
@@ -176,33 +251,73 @@ const saveName = async () => {
     height: 70px;
     @include flex(center, center, null);
   }
+  .screen-container {
+    width: 100%;
+    @include scroll();
+  }
   .screen {
     width: 100%;
-    height: 210px;
+    height: 120px;
     margin: 15px 0px;
     position: relative;
     z-index: 1;
+    border-radius: 10px;
+    box-sizing: border-box;
+    overflow: hidden;
     cursor: pointer;
     img {
-      width: 240px;
-      height: 170px;
-      // @include img-fit(cover);
+      @include img-fit(cover);
+    }
+    .screen-icon {
+      width: 35px;
+      height: 35px;
+      position: absolute;
+      z-index: 2;
+      top: 0px;
+      right: 0px;
+      display: none;
+      cursor: pointer;
+    }
+    &:hover {
+      .screen-icon {
+        @include flex(center, center, null);
+      }
     }
     .screen-bottom {
       width: 100%;
-      height: 30px;
+      height: 35px;
+      text-align: center;
+      line-height: 35px;
       position: absolute;
       z-index: 2;
       left: 0px;
-      bottom: 40px;
+      bottom: 0px;
+      color: #fff;
+      background-color: rgba(0, 0, 0, 0.5);
+      font-size: 14px;
       @include p-number(10px);
-      @include flex(space-between, center, null);
     }
-    .screen-title {
+    .screen-mark {
       width: 100%;
-      height: 30px;
-      text-align: center;
-      line-height: 30px;
+      height: 100%;
+      position: absolute;
+      z-index: 2;
+      left: 0px;
+      top: 0px;
+      color: #fff;
+      background-color: rgba(0, 0, 0, 0.5);
+      font-size: 14px;
+      align-content: center;
+      @include flex(center, center, flex);
+      img {
+        width: 50px;
+        height: 50px;
+      }
+      > div {
+        width: 100%;
+        text-align: center;
+        margin-top: 5px;
+      }
     }
   }
 }

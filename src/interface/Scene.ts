@@ -7,10 +7,11 @@ export interface SceneConfig {
   multires: string;
   _key: string;
   viewAngle?: ViewAngle;
-  sandTable?: any;
   BGM?: any;
   specialEffect?: { mode: string; url?: string; _key: string };
   shade?: any;
+  ttsContent?: string;
+  viewPoints?: any;
 }
 export interface ViewAngle {
   fov: string;

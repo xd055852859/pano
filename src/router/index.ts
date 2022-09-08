@@ -8,15 +8,30 @@ const routes: Array<RouteRecordRaw> = [
     children: [],
   },
   {
-    path: "/home",
-    name: "home",
-    component: () => import("@/views/home.vue"),
-    children: [],
+    path: "/view",
+    name: "view",
+    component: () => import("@/views/index.vue"),
+    redirect: "/view/home",
+    children: [
+      {
+        path: "home",
+        name: "home",
+        component: () => import("@/views/home.vue"),
+        children: [],
+      },
+      {
+        path: "pano/:id",
+        name: "pano",
+        component: () => import("@/views/pano.vue"),
+        children: [],
+      },
+    ],
   },
+
   {
-    path: "/pano/:id",
-    name: "pano",
-    component: () => import("@/views/pano.vue"),
+    path: "/preview/:panoKey/:sceneKey",
+    name: "preview",
+    component: () => import("@/views/preview.vue"),
     children: [],
   },
 ];

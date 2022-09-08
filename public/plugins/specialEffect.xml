@@ -1,34 +1,39 @@
 <krpano>
-    <action name="snowballs">
-		set(plugin[snow].blendmode,     normal);
-		set(plugin[snow].flakes,        2000);
-		set(plugin[snow].speed,         1.0);
-		set(plugin[snow].shake,         4.0);
-		set(plugin[snow].speedvariance, 2.0);
-		set(plugin[snow].spreading,     2.0);
-		set(plugin[snow].wind,          0.0);
-		set(plugin[snow].invert,        false);
-		set(plugin[snow].floor,         0.7);
-    </action>
-    <action name="rain">
-		set(plugin[snow].mode,          rain);
-		set(plugin[snow].blendmode,     normal);
-		set(plugin[snow].flakes,        4000);
-		set(plugin[snow].color,         0x9FAFFF);
-		set(plugin[snow].speed,         4.1);
-		set(plugin[snow].shake,         0.0);
-		set(plugin[snow].speedvariance, 1.5);
-		set(plugin[snow].spreading,     4.0);
-		set(plugin[snow].rainwidth,     1.5);
-		set(plugin[snow].rainalpha,     0.3);
-		set(plugin[snow].wind,          3.0);
-		set(plugin[snow].invert,        false);
-		set(plugin[snow].floor,         0.7);
-    </action>
-    <action name="getHotspotName">  
+	<action name="snowballs">
+		set(plugin[special].blendmode,     normal);
+		set(plugin[special].flakes,        2000);
+		set(plugin[special].speed,         1.0);
+		set(plugin[special].shake,         4.0);
+		set(plugin[special].speedvariance, 2.0);
+		set(plugin[special].spreading,     2.0);
+		set(plugin[special].wind,          0.0);
+		set(plugin[special].invert,        false);
+		set(plugin[special].floor,         0.7);
+	</action>
+	<action name="rain">
+		set(plugin[special].mode,          rain);
+		set(plugin[special].blendmode,     normal);
+		set(plugin[special].flakes,        6000);
+		set(plugin[special].color,         0x9FAFFF);
+		set(plugin[special].speed,         4.1);
+		set(plugin[special].shake,         0.0);
+		set(plugin[special].speedvariance, 1.5);
+		set(plugin[special].spreading,     4.0);
+		set(plugin[special].rainwidth,     9.5);
+		set(plugin[special].rainalpha,     0.7);
+		set(plugin[special].wind,          3.0);
+		set(plugin[special].invert,        false);
+		set(plugin[special].floor,         0.7);
+	</action>
+	<action name="getHotspotName">  
         jscall('localStorage.setItem("targetspotName","%1");')
-    </action>
-	  <action name="getLayerName">  
+	</action>
+	<action name="getLayerName">  
         jscall('localStorage.setItem("targetlayerName","%1");')
-    </action>
+	</action>
+	<action name="getViewPointName">  
+        jscall('localStorage.setItem("targetViewPointNumber","%1");')
+	</action>
+
+	<style name="textStyle" font="Arial" fontsize.no-mobile="18" fontsize.mobile="28" bold="true" background="true" backgroundcolor="0x333300" backgroundalpha="0.667" border="true" borderwidth="2" bordercolor="0xFFFFFF" roundedge="10" textcolor="0xFFFFFF" padding="6 10" textalign="center" yoffset.no-touch="-5" yoffset.touch="-40" />
 </krpano>

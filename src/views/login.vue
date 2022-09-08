@@ -5,13 +5,13 @@ import logoSvg from "../assets/svg/logo.svg";
 const router = useRouter();
 onMounted(() => {
   if (localStorage.getItem("token")) {
-    router.push("/home");
+    router.push("/view");
   }
 });
 
 const login = () => {
   let redirect = encodeURIComponent(
-    `${window.location.protocol}//${window.location.host}/#/home/`
+    `${window.location.protocol}//${window.location.host}/#/view`
   );
   console.log(redirect);
   localStorage.clear();

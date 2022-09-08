@@ -8,7 +8,8 @@ import { storeToRefs } from "pinia";
 const { fovPano, pano, panoConfig, sceneKey, sceneConfig } = storeToRefs(
   appStore.panoStore
 );
-const { setPano, setHotspotName, setFovPano } = appStore.panoStore;
+const { setPano, setHotspotName, setFovPano, setPreviewPano } =
+  appStore.panoStore;
 const props = defineProps<{
   panoId: string;
   config?: any;
@@ -18,13 +19,12 @@ const krpano = ref<any>(null);
 const panoRef = ref<any>(null);
 
 onMounted(() => {
-  if (sceneConfig.value) {
+  if (sceneConfig.value?.multires) {
     init(sceneConfig.value);
   }
 });
 const init = (config) => {
   //1208547675
-  console.log(config.xmlPath);
   //@ts-ignore
   embedpano({
     id: "krpanoSWFObject" + props.type,
@@ -47,6 +47,8 @@ const init = (config) => {
         if (props.type === "fov") {
           setFovPano(newPano);
         }
+      } else if (props.type === "preview") {
+        setPreviewPano(newPano);
       }
     },
   });
@@ -60,12 +62,12 @@ const clearPano = (newPano, config?: any) => {
   let view = useXml("fov", config, props.type);
   let xmlstring = `<krpano>
       <include url="./plugins/specialEffect.xml" />
+      
   	 ${props.type === "main" ? `<include url="./plugins/drag.xml" />` : ""} 
      ${view} 
      ${preview}
-     
+    
      </krpano>`;
-  console.log(xmlstring);
   newPano.call(
     "loadxml(" + escape(xmlstring) + ", null, REMOVESCENES, BLEND(0.5));"
   );

@@ -5,18 +5,28 @@ import { ArrowLeft } from "@element-plus/icons-vue";
 import { storeToRefs } from "pinia";
 import api from "@/services/api";
 import { ResultProps } from "@/interface/Common";
-import Preview from "@/views/preview.vue";
+import useClipboard from "vue-clipboard3";
+import router from "@/router";
+const { toClipboard } = useClipboard();
 const { setLeftNum, setHeaderNum, setPreviewVisible } = appStore.commonStore;
 const { leftNum, headerNum, previewVisible } = storeToRefs(
   appStore.commonStore
 );
-const { hotspotIndex, pano, panoConfig, sceneConfig } = storeToRefs(
+const { hotspotIndex, pano, panoConfig, sceneConfig, sceneKey } = storeToRefs(
   appStore.panoStore
 );
 const { setHotspotIndex } = appStore.panoStore;
-const { hotspotObj, layerObj } = storeToRefs(appStore.controlStore);
-const { setHotspotConfig, setLayerConfig, setHotspotObj, setLayerObj } =
-  appStore.controlStore;
+const { hotspotObj, layerObj, viewPointArray } = storeToRefs(
+  appStore.controlStore
+);
+const {
+  setHotspotConfig,
+  setLayerConfig,
+  setHotspotObj,
+  setLayerObj,
+  setViewPointConfig,
+  setViewPointArray,
+} = appStore.controlStore;
 
 const activeIndex = ref("1");
 
@@ -62,13 +72,16 @@ onMounted(() => {
           index = 7;
           break;
         //click/loop
-        case "viewPoint":
-          index = 8;
-          break;
       }
       console.log(index);
       setHotspotIndex(index);
       localStorage.removeItem("targetlayerName");
+    } else if (e.key === "targetViewPointNumber" && e.newValue) {
+      console.log("targetViewPointNumber", e.newValue);
+      setViewPointConfig(viewPointArray.value[e.newValue]);
+      setHeaderNum(4);
+      setHotspotIndex(8);
+      localStorage.removeItem("targetViewPointNumber");
     }
   });
 });
@@ -86,11 +99,8 @@ const getHotspot = () => {
     }
     pano.value.set(`hotspot[${name}].atv`, value.atv);
     pano.value.set(`hotspot[${name}].ath`, value.ath);
-    pano.value.set(
-      `hotspot[${name}].onclick`,
-      `getHotspotName(${name},'hotspot')`
-    );
-    pano.value.set(`hotspot[${name}].scale`, value.scale ? value.scale : "0.1");
+    pano.value.set(`hotspot[${name}].onclick`, `getHotspotName(${name})`);
+    pano.value.set(`hotspot[${name}].scale`, value.scale ? value.scale : "1.0");
     pano.value.set(`hotspot[${name}].ondown`, "draghotspot()");
     if (hotspotObj.value[key].title) {
       let layerName = name + "text";
@@ -98,10 +108,9 @@ const getHotspot = () => {
       pano.value.set(`layer[${layerName}].html`, hotspotObj.value[key].title);
       pano.value.set(`layer[${layerName}].type`, "text");
       pano.value.set(`layer[${layerName}].align`, "top");
-      pano.value.set(
-        `layer[${layerName}].css`,
-        "font-family:Arial; font-size:16px; color:#000000;"
-      );
+      pano.value.set(`layer[${layerName}].css`, "color:#FFFFFF;font-size:14px");
+      pano.value.set(`layer[${layerName}].txtshadow`, "1 1 2.0 0x000000 0.5");
+      pano.value.set(`layer[${layerName}].bg`, "false");
       pano.value.set(`layer[${layerName}].y`, "-20");
       pano.value.set(`layer[${layerName}].padding`, "3");
       pano.value.set(`layer[${layerName}].parent`, `hotspot[${name}]`);
@@ -113,84 +122,57 @@ const getLayer = () => {
   for (let key in layerObj.value) {
     let value = layerObj.value[key];
     let name = value.name;
+    pano.value.call(`addhotspot(${name})`);
     if (value.type === "text") {
-      pano.value.call(`addhotspot(${name})`);
       pano.value.set(`hotspot[${name}].type`, "text");
       pano.value.set(`hotspot[${name}].html`, value.text);
-      pano.value.set(`hotspot[${name}].atv`, value.atv);
-      pano.value.set(`hotspot[${name}].ath`, value.ath);
-      pano.value.set(`hotspot[${name}].align`, "center");
-      pano.value.set(
-        `hotspot[${name}].css`,
-        "font-family:Arial; font-size:16px; color:#000000;"
-      );
-      pano.value.set(`hotspot[${name}].padding`, "10");
-      pano.value.set(`hotspot[${name}].ondown`, "draghotspot()");
-      pano.value.set(`hotspot[${name}].onclick`, `getLayerName(${name})`);
+      pano.value.call(`assignstyle(hotspot[${name}],'textStyle')`);
+      pano.value.set(`hotspot[${name}].css`, "color:#FFFFFF;font-size:14px");
     } else if (layerObj.value[key].type === "image") {
-      pano.value.call(`addlayer(${name})`);
-      pano.value.set(`layer[${name}].url`, value.imageList[0]);
-      pano.value.set(`layer[${name}].x`, value.x);
-      pano.value.set(`layer[${name}].y`, value.y);
-      pano.value.set(`layer[${name}].align`, "center");
-      pano.value.set(`layer[${name}].ondown`, "draglayer()");
-      pano.value.set(`layer[${name}].onclick`, `getLayerName(${name})`);
+      pano.value.set(`hotspot[${name}].url`, value.imageList[0]);
     }
+    pano.value.set(`hotspot[${name}].scale`, value.scale ? value.scale : "1.0");
+    pano.value.set(`hotspot[${name}].atv`, value.atv);
+    pano.value.set(`hotspot[${name}].ath`, value.ath);
+    pano.value.set(`hotspot[${name}].align`, "center");
+    pano.value.set(`hotspot[${name}].ondown`, "draghotspot()");
+    pano.value.set(`hotspot[${name}].onclick`, `getLayerName(${name})`);
   }
 };
-const removeHotspot = () => {
-  if (hotspotObj.value) {
-    let newHostObj = { ...hotspotObj.value };
-    for (let key in hotspotObj.value) {
-      console.log(hotspotObj.value[key]);
-
-      newHostObj[key].ath = pano.value.get(
-        `hotspot[${newHostObj[key].name}].ath`
-      )
-        ? pano.value.get(`hotspot[${newHostObj[key].name}].ath`)
-        : newHostObj[key].ath;
-      newHostObj[key].atv = pano.value.get(
-        `hotspot[${newHostObj[key].name}].atv`
-      )
-        ? pano.value.get(`hotspot[${newHostObj[key].name}].atv`)
-        : newHostObj[key].atv;
-      pano.value.call(`removehotspot(${newHostObj[key].name},true)`);
-      if (newHostObj[key].title) {
-        pano.value.call(`removelayer(${newHostObj[key].name}text,true)`);
+const getViewPoint = () => {
+  viewPointArray.value.forEach((item, index) => {
+    let name = item.name;
+    pano.value.call(`addhotspot(${name})`);
+    pano.value.set(`hotspot[${name}].type`, "text");
+    pano.value.set(`hotspot[${name}].html`, item.number);
+    pano.value.call(`assignstyle(hotspot[${name}],'textStyle')`);
+    pano.value.set(`hotspot[${name}].css`, "color:#FFFFFF;font-size:14px");
+    pano.value.set(`hotspot[${name}].atv`, item.atv);
+    pano.value.set(`hotspot[${name}].ath`, item.ath);
+    pano.value.set(`hotspot[${name}].padding`, "8");
+    pano.value.set(`hotspot[${name}].ondown`, "draghotspot()");
+    console.log(index);
+    pano.value.set(`hotspot[${name}].onclick`, `getViewPointName(${index})`);
+  });
+};
+const removeControl = (obj, type) => {
+  console.log(obj);
+  if (obj) {
+    let newObj = { ...obj };
+    for (let key in newObj) {
+      pano.value.call(`removehotspot(${newObj[key].name})`);
+      if (newObj[key].title) {
+        pano.value.call(`removelayer(${newObj[key].name}text)`);
       }
     }
-    setHotspotObj(newHostObj);
-  }
-};
-const removeLayer = () => {
-  let newLayerObj = { ...layerObj.value };
-  for (let key in layerObj.value) {
-    console.log(layerObj.value[key]);
-    if (newLayerObj[key].type === "text") {
-      newLayerObj[key].ath = pano.value.get(
-        `hotspot[${newLayerObj[key].name}].ath`
-      )
-        ? pano.value.get(`hotspot[${newLayerObj[key].name}].ath`)
-        : newLayerObj[key].ath;
-      newLayerObj[key].atv = pano.value.get(
-        `hotspot[${newLayerObj[key].name}].atv`
-      )
-        ? pano.value.get(`hotspot[${newLayerObj[key].name}].atv`)
-        : newLayerObj[key].atv;
-      pano.value.call(`removehotspot(${newLayerObj[key].name})`);
-    } else if (newLayerObj[key].type === "image") {
-      console.log();
-      newLayerObj[key].x = pano.value.get(`layer[${newLayerObj[key].name}].x`)
-        ? pano.value.get(`layer[${newLayerObj[key].name}].x`)
-        : newLayerObj[key].y;
-      newLayerObj[key].y = pano.value.get(`layer[${newLayerObj[key].name}].y`)
-        ? pano.value.get(`layer[${newLayerObj[key].name}].y`)
-        : newLayerObj[key].y;
-      pano.value.call(`removelayer(${newLayerObj[key].name})`);
+    if (type === "hotspot") {
+      setHotspotObj(newObj);
+    } else {
+      setLayerObj(newObj);
     }
   }
-  setLayerObj(newLayerObj);
 };
+
 const chooseHotspot = (index) => {
   setHeaderNum(3);
   setHotspotIndex(index);
@@ -199,26 +181,22 @@ const chooseHotspot = (index) => {
 const chooseControl = (index) => {
   setHeaderNum(4);
   setHotspotIndex(index);
-  createControl(index);
+  createLayer(index);
 };
 const createHotspot = (index) => {
   let name = "hotspot" + new Date().getTime();
-  let atv = sceneConfig.value?.viewAngle?.vlookat
-    ? sceneConfig.value.viewAngle.vlookat
-    : 0;
-  let ath = sceneConfig.value?.viewAngle?.hlookat
-    ? sceneConfig.value.viewAngle.hlookat
-    : 0;
+  let atv = pano.value.get(`view.vlookat`);
+  let ath = pano.value.get(`view.hlookat`);
   pano.value.call(`addhotspot(${name})`);
   pano.value.set(
     `hotspot[${name}].url`,
     "https://cdn-pano.qingtime.cn/hotspot(40).png"
   );
   // pano.value.set(`hotspot[hotspot${name}].renderer`, "css3d");
+  pano.value.set(`hotspot[${name}].scale`, "1.0");
   pano.value.set(`hotspot[${name}].atv`, atv);
   pano.value.set(`hotspot[${name}].ath`, ath);
   pano.value.set(`hotspot[${name}].onclick`, `getHotspotName(${name})`);
-  pano.value.set(`hotspot[${name}].scale`, "0.1");
   pano.value.set(`hotspot[${name}].ondown`, "draghotspot()");
   let obj: any = {
     name: name,
@@ -283,72 +261,96 @@ const createHotspot = (index) => {
   // setHotspotObj({ name: obj, ...hotspotObj });
   setHotspotConfig({ ...obj });
 };
-const createControl = (index: number) => {
+const createLayer = (index: number) => {
   let name = "layer" + new Date().getTime();
-  let atv = sceneConfig.value?.viewAngle?.vlookat
-    ? sceneConfig.value.viewAngle.vlookat
-    : 0;
-  let ath = sceneConfig.value?.viewAngle?.hlookat
-    ? sceneConfig.value.viewAngle.hlookat
-    : 0;
-  console.log(name);
+  let atv = pano.value.get(`view.vlookat`);
+  let ath = pano.value.get(`view.hlookat`);
 
   let obj: any = {
     name: name,
     state: "unUsed",
+    ath: ath,
+    atv: atv,
   };
+  pano.value.call(`addhotspot(${name})`);
+  pano.value.set(`hotspot[${name}].scale`, "1.0");
+  pano.value.set(`hotspot[${name}].align`, "center");
+  pano.value.set(`hotspot[${name}].ondown`, "draghotspot()");
+  pano.value.set(`hotspot[${name}].ath`, ath);
+  pano.value.set(`hotspot[${name}].atv`, atv);
   switch (index) {
     case 6:
-      pano.value.call(`addhotspot(${name})`);
       pano.value.set(`hotspot[${name}].type`, "text");
-      pano.value.set(`hotspot[${name}].align`, "center");
-      pano.value.set(
-        `hotspot[${name}].css`,
-        "font-family:Arial; font-size:16px; color:#000000;"
-      );
-      pano.value.set(`hotspot[${name}].onclick`, `getLayerName(${name})`);
+      pano.value.set(`hotspot[${name}].css`, "color:#FFFFFF;font-size:14px");
+      pano.value.call(`assignstyle(hotspot[${name}],'textStyle')`);
       pano.value.set(`hotspot[${name}].padding`, "10");
-      pano.value.set(`hotspot[${name}].ondown`, "draghotspot()");
+      pano.value.set(`hotspot[${name}].onclick`, `getLayerName(${name})`);
       obj = {
         ...obj,
         type: "text",
         linkUrl: "",
         text: "",
-        ath: ath,
-        atv: atv,
         target: "_self",
       };
       setLayerConfig({ ...obj });
       break;
     case 7:
-      pano.value.call(`addlayer(${name})`);
-      pano.value.set(`layer[${name}].type`, "image");
-      // pano.value.set(`layer[${name}].url`, "hotspot.png");
-      pano.value.set(`layer[${name}].align`, "center");
-      pano.value.set(`layer[${name}].ondown`, "draglayer()");
-      pano.value.set(`layer[${name}].onclick`, `getLayerName(${name})`);
-      pano.value.set(`layer[${name}].x`, `getLayerName(${name})`);
-      pano.value.set(`layer[${name}].y`, `getLayerName(${name})`);
+      pano.value.set(`hotspot[${name}].type`, "image");
+      pano.value.set(`hotspot[${name}].onclick`, `getLayerName(${name})`);
       obj = {
         ...obj,
         type: "image",
         imageList: [],
         switchMode: "loop",
         interval: "2",
+        scale: "1.0",
       };
       setLayerConfig({ ...obj });
       break;
     case 8:
-      createHotspot(index);
+      pano.value.set(`hotspot[${name}].type`, "text");
+      pano.value.set(`hotspot[${name}].css`, "color:#FFFFFF;font-size:14px");
+      pano.value.call(`assignstyle(hotspot[${name}],'textStyle')`);
+      pano.value.set(`hotspot[${name}].padding`, "8");
+      pano.value.set(`hotspot[${name}].html`, viewPointArray.value.length + 1);
+      pano.value.set(`hotspot[${name}].onclick`, `getViewPointName(${index})`);
+      obj = {
+        ...obj,
+        number: viewPointArray.value.length + 1,
+        interval: "2",
+      };
+      setViewPointConfig({
+        ...obj,
+      });
       break;
   }
 };
+const formatAthAtv = (obj, type) => {
+  let newarr = type === "obj" ? Object.values(obj) : [...obj];
+  let arr: any = [];
+  let state = false;
+  newarr.forEach((item: any, index) => {
+    if (item.state === "used") {
+      item.ath = pano.value.get(`hotspot[${item.name}].ath`)
+        ? pano.value.get(`hotspot[${item.name}].ath`)
+        : item.ath;
+      item.atv = pano.value.get(`hotspot[${item.name}].atv`)
+        ? pano.value.get(`hotspot[${item.name}].atv`)
+        : item.atv;
+      arr.push(item);
+    } else {
+      state = true;
+    }
+  });
+  return [arr, state];
+};
 
-const savePano = async () => {
+const savePano = async (type?: string) => {
   let savePanoRes: any = null;
   let saveSceneRes: any = null;
   let hotspot: any = [];
   let layer: any = [];
+  let viewPoints: any = [];
   let state = false;
   if (panoConfig.value && sceneConfig.value) {
     let panoObj = {
@@ -359,70 +361,24 @@ const savePano = async () => {
       location: panoConfig.value.location,
       config: panoConfig.value.config,
       panoKey: panoConfig.value._key,
+      sandTable: panoConfig.value?.sandTable,
+      gyro: true,
     };
     savePanoRes = (await api.request.patch("pano", {
       ...panoObj,
     })) as ResultProps;
     if (hotspotObj.value) {
-      let newHostObj = { ...hotspotObj.value };
-      for (let key in hotspotObj.value) {
-        console.log(hotspotObj.value[key]);
-        if (newHostObj[key].state === "used") {
-          newHostObj[key].ath = pano.value.get(
-            `hotspot[${newHostObj[key].name}].ath`
-          )
-            ? pano.value.get(`hotspot[${newHostObj[key].name}].ath`)
-            : newHostObj[key].ath;
-          newHostObj[key].atv = pano.value.get(
-            `hotspot[${newHostObj[key].name}].atv`
-          )
-            ? pano.value.get(`hotspot[${newHostObj[key].name}].atv`)
-            : newHostObj[key].atv;
-          hotspot.push(newHostObj[key]);
-        } else {
-          state = true;
-        }
-      }
+      [hotspot, state] = formatAthAtv(hotspotObj.value, "obj");
     }
     if (layerObj.value) {
-      let newLayerObj = { ...layerObj.value };
-      for (let key in layerObj.value) {
-        console.log(layerObj.value[key]);
-        if (newLayerObj[key].state === "used") {
-          if (newLayerObj[key].type === "text") {
-            newLayerObj[key].ath = pano.value.get(
-              `hotspot[${newLayerObj[key].name}].ath`
-            )
-              ? pano.value.get(`hotspot[${newLayerObj[key].name}].ath`)
-              : newLayerObj[key].ath;
-            newLayerObj[key].atv = pano.value.get(
-              `hotspot[${newLayerObj[key].name}].atv`
-            )
-              ? pano.value.get(`hotspot[${newLayerObj[key].name}].atv`)
-              : newLayerObj[key].atv;
-          } else if (newLayerObj[key].type === "image") {
-            console.log();
-            newLayerObj[key].x = pano.value.get(
-              `layer[${newLayerObj[key].name}].x`
-            )
-              ? pano.value.get(`layer[${newLayerObj[key].name}].x`)
-              : newLayerObj[key].y;
-            newLayerObj[key].y = pano.value.get(
-              `layer[${newLayerObj[key].name}].y`
-            )
-              ? pano.value.get(`layer[${newLayerObj[key].name}].y`)
-              : newLayerObj[key].y;
-          }
-          layer.push(newLayerObj[key]);
-          console.log(layer);
-        } else {
-          state = true;
-        }
-      }
+      [layer, state] = formatAthAtv(layerObj.value, "obj");
+    }
+    if (viewPointArray.value) {
+      [viewPoints, state] = formatAthAtv(viewPointArray.value, "arr");
     }
     if (state) {
       ElMessage({
-        message: "尚有控件内容未保存",
+        message: "尚有控件或热点内容未保存",
         type: "warning",
         duration: 1000,
       });
@@ -430,9 +386,6 @@ const savePano = async () => {
     let sceneObj = {
       sceneKey: sceneConfig.value._key,
       viewAngle: sceneConfig.value.viewAngle,
-      sandTable: sceneConfig.value?.sandTable
-        ? sceneConfig.value?.sandTable
-        : {},
       // url: "", loop: false
       BGM: sceneConfig.value?.BGM ? sceneConfig.value?.BGM : {},
       specialEffect: sceneConfig.value?.specialEffect
@@ -440,50 +393,65 @@ const savePano = async () => {
         : {},
       hotspots: hotspot,
       layers: layer,
+      ttsContent: sceneConfig.value?.ttsContent,
       //{
       //   sky: { scale: "1.0", url: "" },
       //   ground: { scale: "1.0", url: "" },
       // },
       shade: sceneConfig.value?.shade ? sceneConfig.value?.shade : {},
+      viewPoints: viewPoints,
     };
 
     saveSceneRes = (await api.request.patch("scene", {
       ...sceneObj,
     })) as ResultProps;
     if (savePanoRes.msg === "OK" && saveSceneRes.msg === "OK") {
-      ElMessage({
-        message: "保存成功",
-        type: "success",
-        duration: 1000,
-      });
+      if (type) {
+        router.push(`/preview/${panoConfig.value._key}/${sceneKey.value}`);
+      } else {
+        ElMessage({
+          message: "保存成功",
+          type: "success",
+          duration: 1000,
+        });
+      }
     }
   }
+};
+const sharePano = () => {
+  toClipboard(
+    `${window.location.protocol}//${window.location.host}/#/preview/${panoConfig.value?._key}/${sceneKey.value}`
+  );
+  ElMessage({
+    message: "复制链接成功",
+    type: "success",
+    duration: 1000,
+  });
 };
 watch(headerNum, (newNum, oldNum) => {
   console.log(newNum);
   if (newNum === 0 || newNum === 1) {
-    removeHotspot();
-    removeLayer();
+    removeControl(hotspotObj.value, "hotspot");
+    removeControl(layerObj.value, "layer");
   } else if (oldNum === 0 || oldNum === 1) {
     getHotspot();
     getLayer();
+    getViewPoint();
   }
 });
 </script>
 <template>
   <div class="pano-editor-header">
-    <div class="left">
+    <div class="left" @click="$router.push('/view')">
       <el-icon :size="24" style="margin-right: 5px">
         <ArrowLeft />
       </el-icon>
-      全景标题
+      {{ panoConfig?.name ? panoConfig?.name : "全景" }}
     </div>
     <div class="center">
       <el-menu
         :default-active="activeIndex"
         mode="horizontal"
-        background-color="#373737"
-        text-color="#fff"
         class="center-menu"
       >
         <el-menu-item
@@ -526,6 +494,7 @@ watch(headerNum, (newNum, oldNum) => {
               >音频热点</el-menu-item
             >
           </el-sub-menu>
+          <el-divider border-style="dashed" />
           <el-menu-item index="2-2" @click="chooseControl(6)"
             >文字</el-menu-item
           >
@@ -540,36 +509,42 @@ watch(headerNum, (newNum, oldNum) => {
       </el-menu>
     </div>
     <div class="right">
-      <div @click="setPreviewVisible(true)">预览</div>
-      <div @click="savePano">保存</div>
-      <div>分享</div>
+      <div @click="savePano('preview')"> <iconpark-icon name="preview" :size="24" style="margin-right:2px"/>预览</div>
+      <div @click="savePano()">
+        <iconpark-icon name="save" :size="24" style="margin-right:2px"/>保存
+      </div>
+      <div @click="sharePano">
+        <iconpark-icon name="share" :size="24" />分享
+      </div>
     </div>
   </div>
-  <el-dialog v-model="previewVisible" title="预览" fullscreen destroy-on-close>
-    <Preview />
-  </el-dialog>
 </template>
 <style scoped lang="scss">
 .pano-editor-header {
   width: 100vw;
   height: 50px;
-  position: relative;
-  z-index: 1;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  z-index: 2;
   color: #fff;
-  background: #373737;
+  background: rgba(30, 30, 30, 0.7);
+  @include p-number(15px);
   @include flex(space-between, center, null);
 
   .left {
-    width: 255px;
+    width: 165px;
     height: 50px;
-    padding-left: 35px;
-    box-sizing: border-box;
     @include flex(null, center, null);
   }
 
   .center {
-    width: calc(100% - 500px);
+    width: calc(100% - 400px);
     box-sizing: border-box;
+    .center-menu {
+      background-color: transparent;
+      color: #fff;
+    }
     // @include flex(center, center, null);
     // > div {
     //   width: 80px;
@@ -586,13 +561,29 @@ watch(headerNum, (newNum, oldNum) => {
   }
 
   .right {
-    width: 245px;
-    @include flex(center, center, null);
-
+    width: 235px;
+    @include flex(flex-end, center, null);
     > div {
-      margin-right: 10px;
+      @include flex(center, center, null);
+      margin-right: 12px;
     }
   }
 }
 </style>
-<style lang="scss"></style>
+<style lang="scss">
+.center {
+  .center-menu {
+    border: 0px;
+    height: 49px;
+    .el-sub-menu__title {
+      color: #fff;
+    }
+    .el-menu-item {
+      color: #fff;
+    }
+    .is-active {
+      background-color: transparent;
+    }
+  }
+}
+</style>

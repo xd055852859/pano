@@ -3,9 +3,10 @@ import { getSearchParamValue } from "@/services/util";
 import { storeToRefs } from "pinia";
 import appStore from "@/store";
 import request from "@/services/api";
-const { token, user } = storeToRefs(appStore.authStore);
-const { setToken, getUserInfo } = appStore.authStore;
-
+const { setToken } = appStore.authStore;
+const { setSceneKey } = appStore.panoStore;
+const { setLeftNum, setCreateState } = appStore.commonStore;
+const socket: any = inject("socket");
 onBeforeMount(() => {
   window.addEventListener("message", handle, false);
   const search = window.location.search
@@ -17,8 +18,20 @@ onBeforeMount(() => {
   } else if (localStorage.getItem("token")) {
     token = localStorage.getItem("token") as string;
   }
-  request.setToken(token);
-  setToken(token);
+  if (token) {
+    request.setToken(token);
+    setToken(token);
+    socket.on("connect", () => {
+      socket.emit("login", token);
+      socket.on("createOK", (data) => {
+        console.log(data)
+        //删除
+        setLeftNum(1);
+        setSceneKey(data._key);
+        setCreateState(false);
+      });
+    });
+  }
   // let url = window.location.href;
   //自动切换为https
   // if (url.indexOf("http://localhost") === -1 && url.indexOf("https") < 0) {
@@ -43,15 +56,6 @@ const handle = (e: any) => {
   }
 };
 //初始化
-watch(
-  token,
-  (newVal, oldVal) => {
-    if (newVal) {
-      getUserInfo();
-    }
-  },
-  { immediate: true }
-);
 </script>
 
 <template><router-view></router-view></template>

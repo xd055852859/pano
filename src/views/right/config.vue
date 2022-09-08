@@ -6,24 +6,19 @@ import ViewAngle from "./config/viewAngle.vue";
 import Bgm from "./config/bgm.vue";
 import SpecialEffect from "./config/specialEffect.vue";
 import SandTable from "./config/sandTable.vue";
+const { configNum } = storeToRefs(appStore.commonStore);
 const { setConfigNum } = appStore.commonStore;
 const activeName = ref<string>("1");
 
-// watch(
-//   pano,
-//   (newPano, oldPano) => {
-//     if (newPano && !oldPano) {
-//       fov.value = newPano.get("view.fov");
-//       fovmax.value = newPano.get("view.fovmax");
-//       fovmin.value = newPano.get("view.fovmin");
-//       hlookatmin.value = newPano.get("view.hlookatmin");
-//       hlookatmax.value = newPano.get("view.hlookatmax");
-//       vlookatmin.value = newPano.get("view.vlookatmin");
-//       vlookatmax.value = newPano.get("view.vlookatmax");
-//     }
-//   },
-//   { immediate: true }
-// );
+watch(
+  configNum,
+  (newNum, oldPano) => {
+    if (newNum !== activeName.value) {
+      activeName.value = newNum;
+    }
+  },
+  { immediate: true }
+);
 </script>
 <template>
   <div class="config-container">

@@ -7,6 +7,7 @@ import { uploadFile } from "@/services/util";
 import appStore from "@/store";
 import { ElMessage } from "element-plus";
 import { storeToRefs } from "pinia";
+import ProgressItem from "@/components/progressItem.vue";
 const { hotspotIndex, pano, panoConfig, sceneObj } = storeToRefs(
   appStore.panoStore
 );
@@ -43,6 +44,8 @@ const logoArray = ref<any>([]);
 const logo = ref<string>("");
 const logoVisible = ref<boolean>(false);
 const deleteVisible = ref<boolean>(false);
+const percent = ref<number>(50);
+const scale = ref<string>("1.0");
 const changeTypeArray = [
   {
     label: "淡入淡出",
@@ -154,10 +157,9 @@ const changeText = (text) => {
       pano.value.set(`layer[${name}].html`, text);
       pano.value.set(`layer[${name}].type`, "text");
       pano.value.set(`layer[${name}].align`, "top");
-      pano.value.set(
-        `layer[${name}].css`,
-        "font-family:Arial; font-size:16px; color:#000000;"
-      );
+      pano.value.set(`layer[${name}].css`, " color:#FFFFFF;font-size:14px");
+      pano.value.set(`layer[${name}].txtshadow`, "1 1 2.0 0x000000 0.5");
+      pano.value.set(`layer[${name}].bg`, "false");
       pano.value.set(`layer[${name}].y`, "-20");
       pano.value.set(`layer[${name}].padding`, "3");
       pano.value.set(
@@ -172,8 +174,17 @@ const changeText = (text) => {
   }
   setHotspotConfig({ title: text, name: hotspotConfig.value.name });
 };
-
+const changePercent = (percent) => {
+  scale.value = (percent / 50).toFixed(1);
+  pano.value.set(`hotspot[${hotspotConfig.value.name}].scale`, scale.value);
+  setHotspotConfig({ scale: scale.value, name: hotspotConfig.value.name });
+};
 const changeHotspot = (type, value, oType?: string, ovalue?: string) => {
+  if (hotspotIndex.value === 3) {
+    videoUrl.value = videoUrl.value !== value ? value : "";
+  } else if (hotspotIndex.value === 5) {
+    mediaUrl.value = mediaUrl.value !== value ? value : "";
+  }
   setHotspotConfig({ [type]: value, name: hotspotConfig.value.name });
   if (oType) {
     setHotspotConfig({ [oType]: ovalue, name: hotspotConfig.value.name });
@@ -183,9 +194,6 @@ const changeHotspot = (type, value, oType?: string, ovalue?: string) => {
       pano.value.set(`hotspot[${hotspotConfig.value.name}].scale`, "0.4");
     }
   }
-};
-const gotoHostspot = () => {
-  pano.value.call(`looktohotspot(hotspot1,40)`);
 };
 const updateMedia = (file, type) => {
   let mimeType =
@@ -273,6 +281,7 @@ const saveHotspot = () => {
   }
 };
 const delHotspot = () => {
+  deleteVisible.value = false;
   let obj = { ...hotspotObj.value };
   pano.value.call(`removehotspot(${hotspotConfig.value.name})`);
   if (pano.value.get(`layer[${hotspotConfig.value.name}text]`)) {
@@ -286,10 +295,12 @@ const delHotspot = () => {
 watch(
   hotspotConfig,
   (newConfig, oldConfig) => {
-    console.log( newConfig?.name,oldConfig?.name)
+    console.log(newConfig?.name, oldConfig?.name);
     if (newConfig && newConfig?.name !== oldConfig?.name) {
       logo.value = newConfig.url;
       title.value = newConfig.title;
+      scale.value = newConfig.scale ? newConfig.scale : "1.0";
+      percent.value = +scale.value * 50;
       switch (newConfig.type) {
         case "loadPano":
           sceneKey.value = newConfig.sceneKey;
@@ -298,7 +309,7 @@ watch(
           break;
         case "loadUrl":
           linkUrl.value = newConfig.linkUrl;
-          target.value = newConfig.target==="_blank" ? 1 : 0;
+          target.value = newConfig.target === "_blank" ? 1 : 0;
           break;
         //click/loop
         case "openImage":
@@ -335,6 +346,13 @@ watch(hotspotIndex, () => {});
         </div>
         <div class="pano-item-logo" @click="logoVisible = true">
           <img :src="logo" alt="" />
+        </div>
+      </div>
+      <div class="pano-item">
+        <div class="pano-item-title" style="width: 100%">缩放</div>
+        <div class="pano-item-progress">
+          <ProgressItem :percent="percent" @changePercent="changePercent" />
+          <div style="margin-bottom: 5px">{{ scale }}</div>
         </div>
       </div>
       <div class="pano-item">
@@ -502,10 +520,7 @@ watch(hotspotIndex, () => {});
             class="pano-video-item"
             v-for="(item, index) in videoList"
             :key="`video${index}`"
-            @click="
-              linkUrl = item.url;
-              changeHotspot('linkUrl', item.url);
-            "
+            @click="changeHotspot('linkUrl', item.url)"
           >
             <div class="pano-video-name">{{ item.name }}</div>
             <div v-if="videoUrl === item.url">
@@ -557,10 +572,7 @@ watch(hotspotIndex, () => {});
               class="pano-video-item"
               v-for="(item, index) in musicList"
               :key="`music${index}`"
-              @click="
-                mediaUrl = item.url;
-                changeHotspot('mediaUrl', item.url);
-              "
+              @click="changeHotspot('mediaUrl', item.url)"
             >
               <div class="pano-video-name">{{ item.name }}</div>
               <div v-if="mediaUrl === item.url">

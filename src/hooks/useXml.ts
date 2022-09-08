@@ -12,7 +12,6 @@ const useXml = (type, config, panoType?: string) => {
     `;
       break;
     case "fov":
-      console.log(config);
       if (config?.viewAngle) {
         str.value = `<view fov="${config.viewAngle.fov}" hlookat="${config.viewAngle.hlookat}" vlookat="${config.viewAngle.vlookat}" fovmax="${config.viewAngle.fovmax}" fovmin="${config.viewAngle.fovmin}" limitview="lookat" hlookatmax="${config.viewAngle.hlookatmax}" vlookatmax="${config.viewAngle.vlookatmax}"  hlookatmin="${config.viewAngle.hlookatmin}"  vlookatmin="${config.viewAngle.vlookatmin}"/>`;
       } else {

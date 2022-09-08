@@ -8,6 +8,7 @@ export interface PanoConfig {
   labels?: string;
   location?: string;
   config?: any;
+  sandTable?: any;
   _key: string;
 }
 

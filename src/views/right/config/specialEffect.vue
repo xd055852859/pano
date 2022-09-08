@@ -4,6 +4,7 @@ import api from "@/services/api";
 import appStore from "@/store";
 import { ElMessage } from "element-plus";
 import { storeToRefs } from "pinia";
+import ProgressItem from "@/components/progressItem.vue";
 const { configNum } = storeToRefs(appStore.commonStore);
 const { sceneConfig, pano } = storeToRefs(appStore.panoStore);
 const { setSceneConfig } = appStore.panoStore;
@@ -11,7 +12,10 @@ const specialArray = ref<any>("");
 const specialKey = ref<string>("");
 const skyUrl = ref<string>("");
 const groundUrl = ref<string>("");
-
+const skyPercent = ref<number>(50);
+const skyScale = ref<string>("1.0");
+const groundPercent = ref<number>(50);
+const groundScale = ref<string>("1.0");
 const getSpecial = async () => {
   const specialRes = (await api.request.get("effect", {})) as ResultProps;
   if (specialRes.msg === "OK") {
@@ -21,6 +25,7 @@ const getSpecial = async () => {
         //@ts-ignore
         return item._key === sceneConfig.value.specialEffect._key;
       });
+      console.log(index);
       if (index !== -1) {
         specialKey.value = sceneConfig.value.specialEffect._key;
         pano.value.call(`addplugin(special)`);
@@ -28,7 +33,10 @@ const getSpecial = async () => {
           `plugin[special].url`,
           "https://cdn-3d.qingtime.cn/snow.js"
         );
+        console.log(specialArray.value[index].mode);
         if (specialArray.value[index].mode === "rain") {
+          console.log("雨");
+          pano.value.set(`plugin[special].mode`, "rain");
           pano.value.call(`rain()`);
         } else {
           if (specialArray.value[index].url) {
@@ -44,6 +52,7 @@ const getSpecial = async () => {
           specialEffect: {
             mode: specialArray.value[index].mode,
             url: specialArray.value[index].url,
+            _key: specialKey.value,
           },
           _key: sceneConfig.value?._key,
         });
@@ -55,6 +64,9 @@ const getSpecial = async () => {
     // pano.value.call(`snowballs(./hotspot.png)`);
   }
 };
+const removeSpecial = () => {
+  pano.value.call(`removeplugin(special)`);
+};
 const addShade = (url, type) => {
   console.log(url, type);
   pano.value.call(`addhotspot(${type}logo)`);
@@ -64,11 +76,17 @@ const addShade = (url, type) => {
   pano.value.set(`hotspot[${type}logo].ath`, "0");
   pano.value.set(`hotspot[${type}logo].scale`, "1.0");
 };
+const removeShade = () => {
+  pano.value.call(`removehotspot(skylogo)`);
+  pano.value.call(`removehotspot(groundlogo)`);
+};
+
 const changeSpecial = (key) => {
   let index = specialArray.value.findIndex((item) => {
     return item._key === key;
   });
   if (index !== -1) {
+    removeSpecial();
     pano.value.call(`addplugin(special)`);
     pano.value.set(`plugin[special].url`, "https://cdn-3d.qingtime.cn/snow.js");
     if (specialArray.value[index].mode === "rain") {
@@ -115,6 +133,29 @@ const changeShade = (type, url) => {
   setSceneConfig({ shade: { ...obj }, _key: sceneConfig.value?._key });
   // }
 };
+const changePercent = (percent, type) => {
+  if (type === "sky") {
+    skyScale.value = (percent / 50).toFixed(1);
+    pano.value.set(`hotspot[${type}logo].scale`, skyScale.value);
+    setSceneConfig({
+      shade: {
+        ...sceneConfig.value?.shade,
+        sky: { ...sceneConfig.value?.shade.sky, scale: skyScale.value },
+      },
+      _key: sceneConfig.value?._key,
+    });
+  } else {
+    groundScale.value = (percent / 50).toFixed(1);
+    pano.value.set(`hotspot[${type}logo].scale`, groundScale.value);
+    setSceneConfig({
+      shade: {
+        ...sceneConfig.value?.shade,
+        ground: { ...sceneConfig.value?.shade.sky, scale: groundScale.value },
+      },
+      _key: sceneConfig.value?._key,
+    });
+  }
+};
 //{
 //   sky: { scale: "1.0", url: "" },
 //   ground: { scale: "1.0", url: "" },
@@ -122,9 +163,10 @@ const changeShade = (type, url) => {
 watch(
   configNum,
   (newNum) => {
+    console.log(newNum);
     if (newNum === "4") {
       getSpecial();
-      console.log(sceneConfig.value?.shade)
+      console.log(sceneConfig.value?.shade);
       if (sceneConfig.value?.shade) {
         if (sceneConfig.value?.shade?.sky?.url) {
           addShade(sceneConfig.value?.shade?.sky?.url, "sky");
@@ -133,6 +175,9 @@ watch(
           addShade(sceneConfig.value?.shade?.sky?.url, "ground");
         }
       }
+    } else {
+      removeSpecial();
+      removeShade();
     }
   },
   { immediate: true }
@@ -173,6 +218,16 @@ watch(
       </el-select>
     </div>
     <div class="pano-item">
+      <div class="pano-item-title" style="width: 100%">缩放</div>
+      <div class="pano-item-progress">
+        <ProgressItem
+          :percent="skyPercent"
+          @changePercent="(percent) => changePercent(percent, 'sky')"
+        />
+        <div style="margin-bottom: 5px">{{ skyScale }}</div>
+      </div>
+    </div>
+    <div class="pano-item">
       <div class="pano-item-title" style="width: 100%">地面遮罩</div>
       <el-select
         v-model="groundUrl"
@@ -186,6 +241,16 @@ watch(
           :value="'https://cdn-icare.qingtime.cn/永嘉之乱.jpg'"
         />
       </el-select>
+    </div>
+    <div class="pano-item">
+      <div class="pano-item-title" style="width: 100%">缩放</div>
+      <div class="pano-item-progress">
+        <ProgressItem
+          :percent="groundPercent"
+          @changePercent="(percent) => changePercent(percent, 'ground')"
+        />
+        <div style="margin-bottom: 5px">{{ groundScale }}</div>
+      </div>
     </div>
   </div>
 </template>

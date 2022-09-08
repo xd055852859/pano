@@ -12,6 +12,7 @@ const musicRadioState = ref<number>(0);
 const musicFile = ref<any>(null);
 const musicKey = ref<any>("");
 const bgmList = ref<any>(null);
+const ttsContent = ref<any>("");
 const uploadBgm = (e) => {
   console.log(e);
   musicFile.value = e.target.files[0];
@@ -27,14 +28,16 @@ const getBgm = async () => {
   })) as ResultProps;
   if (bgmRes.msg === "OK") {
     bgmList.value = [...bgmRes.data];
-    console.log(sceneConfig.value?.BGM._key);
     if (sceneConfig.value?.BGM?._key) {
       musicKey.value = sceneConfig.value.BGM._key;
     }
+    if (sceneConfig.value?.ttsContent) {
+      ttsContent.value = sceneConfig.value?.ttsContent;
+    }
   }
 };
-const createBgm = () => {
-  uploadFile(musicFile.value, ["mp3"], async (url, name) => {
+const uploadMusic = (file) => {
+  uploadFile(file, ["mp3"], async (url, name) => {
     console.log(url);
     const createRes = (await api.request.post("media", {
       name: musicFile.value.name,
@@ -48,7 +51,6 @@ const createBgm = () => {
         duration: 1000,
       });
       bgmList.value.push(createRes.data);
-      console.log(sceneConfig.value?.BGM._key);
       if (sceneConfig.value?.BGM?._key) {
         musicKey.value = sceneConfig.value.BGM._key;
       }
@@ -67,19 +69,45 @@ const chooseBgm = (key, url) => {
     });
   }
 };
+const changeText = () => {
+  setSceneConfig({
+    ttsContent: ttsContent.value,
+    _key: sceneConfig.value?._key,
+  });
+};
 </script>
 <template>
   <div class="pano-music">
     <div class="pano-item">
+      <div class="pano-item-title">朗读内容</div>
+      <el-input
+        v-model="ttsContent"
+        :autosize="{ minRows: 6 }"
+        type="textarea"
+        placeholder="请输入朗读内容"
+        @change="changeText"
+      />
+    </div>
+    <div class="pano-item">
       <div class="pano-item-title">背景音乐</div>
-      <el-button
-        type="success"
-        round
-        color="#86b93f"
-        style="color: #fff"
-        @click="createBgm"
-        >上传</el-button
-      >
+      <div class="upload-button">
+        <el-button
+          type="success"
+          round
+          color="#86b93f"
+          style="color: #fff"
+          >上传</el-button
+        >
+        <input
+          type="file"
+          accept=".mp3"
+          @change="
+            //@ts-ignore
+            uploadMusic($event.target.files[0])
+          "
+          class="upload-img"
+        />
+      </div>
     </div>
     <div>
       <input type="file" accept=".mp3,.gif" @change="uploadBgm" />

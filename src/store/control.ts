@@ -7,6 +7,8 @@ export const controlStore = defineStore("controlStore", () => {
   const hotspotObj = ref<any>(null);
   const layerConfig = ref<any>(null);
   const layerObj = ref<any>(null);
+  const viewPointConfig = ref<any>(null);
+  const viewPointArray = ref<any>(null);
   const setHotspotConfig = (newHotspotConfig: any) => {
     if (newHotspotConfig) {
       hotspotConfig.value = { ...hotspotConfig.value, ...newHotspotConfig };
@@ -47,6 +49,35 @@ export const controlStore = defineStore("controlStore", () => {
   const setLayerObj = (newLayersObj: any) => {
     layerObj.value = newLayersObj;
   };
+  const setViewPointConfig = (newViewPointConfig: any) => {
+    if (newViewPointConfig) {
+      console.log(newViewPointConfig)
+      viewPointConfig.value = {
+        ...viewPointConfig.value,
+        ...newViewPointConfig,
+      };
+      if (!viewPointArray.value) {
+        viewPointArray.value = [];
+      }
+      let index = viewPointArray.value.findIndex(
+        (item) => item.name === newViewPointConfig.name
+      );
+      console.log(index);
+      if (index !== -1) {
+        viewPointArray.value[index] = {
+          ...viewPointArray.value[index],
+          ...newViewPointConfig,
+        };
+      } else {
+        viewPointArray.value.push(newViewPointConfig);
+      }
+    } else {
+      viewPointConfig.value = null;
+    }
+  };
+  const setViewPointArray = (newViewPointsArray: any) => {
+    viewPointArray.value = newViewPointsArray;
+  };
   return {
     hotspotConfig,
     setHotspotConfig,
@@ -56,5 +87,9 @@ export const controlStore = defineStore("controlStore", () => {
     setLayerConfig,
     layerObj,
     setLayerObj,
+    viewPointConfig,
+    setViewPointConfig,
+    viewPointArray,
+    setViewPointArray,
   };
 });
