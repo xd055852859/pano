@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ElMessage } from "element-plus";
-import { Check } from "@element-plus/icons-vue";
+import { Check, Delete } from "@element-plus/icons-vue";
 import { uploadFile } from "@/services/util";
 import api from "@/services/api";
 import { ResultProps } from "@/interface/Common";
@@ -13,6 +13,9 @@ const musicFile = ref<any>(null);
 const musicKey = ref<any>("");
 const bgmList = ref<any>(null);
 const ttsContent = ref<any>("");
+const bgmIndex = ref<number>(0);
+const deleteVisible = ref<boolean>(false);
+
 const uploadBgm = (e) => {
   console.log(e);
   musicFile.value = e.target.files[0];
@@ -69,6 +72,20 @@ const chooseBgm = (key, url) => {
     });
   }
 };
+const deleteBgm = async () => {
+  const bgmRes = (await api.request.delete("media", {
+    mediaKey: bgmList.value[bgmIndex.value]._key,
+  })) as ResultProps;
+  if (bgmRes.msg === "OK") {
+    ElMessage({
+      message: "删除音乐成功",
+      type: "success",
+      duration: 1000,
+    });
+    deleteVisible.value = false;
+    bgmList.value.splice(bgmIndex.value, 1);
+  }
+};
 const changeText = () => {
   setSceneConfig({
     ttsContent: ttsContent.value,
@@ -91,26 +108,19 @@ const changeText = () => {
     <div class="pano-item">
       <div class="pano-item-title">背景音乐</div>
       <div class="upload-button">
-        <el-button
-          type="success"
-          round
-          color="#86b93f"
-          style="color: #fff"
-          >上传</el-button
-        >
-        <input
-          type="file"
-          accept=".mp3"
-          @change="
-            //@ts-ignore
-            uploadMusic($event.target.files[0])
-          "
-          class="upload-img"
-        />
+        <div class="upload-button">
+          <el-button type="success" round>上传</el-button>
+          <input
+            type="file"
+            accept=".mp3"
+            @change="
+              //@ts-ignore
+              uploadMusic($event.target.files[0])
+            "
+            class="upload-img"
+          />
+        </div>
       </div>
-    </div>
-    <div>
-      <input type="file" accept=".mp3,.gif" @change="uploadBgm" />
     </div>
     <div class="pano-item">
       <el-radio-group v-model="musicRadioState" :text-color="'#fff'">
@@ -125,13 +135,34 @@ const changeText = () => {
         :key="`bgm${index}`"
         @click="chooseBgm(item._key, item.url)"
       >
-        <div class="pano-music-name">{{ item.name }}</div>
-        <div v-if="musicKey === item._key">
-          <el-icon><Check /></el-icon>
+        <div class="pano-music-name single-to-long">{{ item.name }}</div>
+        <div class="pano-music-button">
+          <el-icon v-if="musicKey === item._key" style="margin-left: 10px"
+            ><Check
+          /></el-icon>
+          <el-icon
+            v-else
+            class="pano-music-delete"
+            @click="
+              $event.stopPropagation();
+              bgmIndex = index;
+              deleteVisible = true;
+            "
+            ><Delete
+          /></el-icon>
         </div>
       </div>
     </div>
   </div>
+  <el-dialog v-model="deleteVisible" title="删除提示" width="30%">
+    <div style="padding: 20px">是否删除该音乐</div>
+    <template #footer>
+      <span class="dialog-footer">
+        <el-button @click="deleteVisible = false">取消</el-button>
+        <el-button type="success" @click="deleteBgm()">确认</el-button>
+      </span>
+    </template>
+  </el-dialog>
 </template>
 <style scoped lang="scss">
 .pano-music {
@@ -147,11 +178,24 @@ const changeText = () => {
     .pano-music-item {
       width: 100%;
       height: 35px;
+      cursor: pointer;
       @include flex(space-between, center, null);
       .pano-music-name {
-        width: calc(100% - 70px);
+        width: calc(100% - 40px);
         height: 35px;
         line-height: 35px;
+      }
+      .pano-music-button {
+        width: 30px;
+        height: 100%;
+        @include flex(flex-end, center, null);
+        .pano-music-delete {
+          display: none;
+        }
+      }
+
+      &:hover .pano-music-delete {
+        display: flex;
       }
     }
   }

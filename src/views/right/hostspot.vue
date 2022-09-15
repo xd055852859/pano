@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { ResultProps } from "@/interface/Common";
 import { PanoTag } from "@/interface/pano";
-import { Check } from "@element-plus/icons-vue";
+import { Check, Delete, Close } from "@element-plus/icons-vue";
 import api from "@/services/api";
 import { uploadFile } from "@/services/util";
 import appStore from "@/store";
 import { ElMessage } from "element-plus";
 import { storeToRefs } from "pinia";
 import ProgressItem from "@/components/progressItem.vue";
-const { hotspotIndex, pano, panoConfig, sceneObj } = storeToRefs(
+const { hotspotIndex, pano, panoConfig, sceneConfig, sceneList } = storeToRefs(
   appStore.panoStore
 );
 const { hotspotConfig, hotspotObj } = storeToRefs(appStore.controlStore);
@@ -46,6 +46,8 @@ const logoVisible = ref<boolean>(false);
 const deleteVisible = ref<boolean>(false);
 const percent = ref<number>(50);
 const scale = ref<string>("1.0");
+const delIndex = ref<number>(0);
+const deleteMediaVisible = ref<boolean>(false);
 const changeTypeArray = [
   {
     label: "淡入淡出",
@@ -233,33 +235,49 @@ const delImg = (index) => {
   imgList.value.splice(index, 1);
   changeHotspot("imageList", imgList.value);
 };
+const deleteMedia = async () => {
+  let key = "";
+  console.log();
+  if (hotspotIndex.value === 5) {
+    key = musicList.value[delIndex.value]._key;
+    musicList.value.splice(delIndex.value, 1);
+  } else if (hotspotIndex.value === 3) {
+    key = videoList.value[delIndex.value]._key;
+    videoList.value.splice(delIndex.value, 1);
+  }
+  const mediaRes = (await api.request.delete("media", {
+    mediaKey: key,
+  })) as ResultProps;
+  if (mediaRes.msg === "OK") {
+    ElMessage({
+      message: `删除${hotspotIndex.value === 5 ? "音乐" : "视频"}成功`,
+      type: "success",
+      duration: 1000,
+    });
+    deleteMediaVisible.value = false;
+  }
+};
 const saveHotspot = () => {
   if (hotspotConfig.value) {
     let str = "";
     switch (hotspotConfig.value.type) {
       case "loadPano":
-        hotspotType.value = "全景切换";
         str = hotspotConfig.value.sceneKey ? "" : "请选择切换场景";
         str = hotspotConfig.value.blend ? "" + str : "请选择切换效果";
         break;
       case "loadUrl":
-        hotspotType.value = "超链接";
         str = hotspotConfig.value.linkUrl ? "" : "请输入超链接网址";
         break;
       case "openImage":
-        hotspotType.value = "图片";
         str = hotspotConfig.value.imageList.length === 0 ? "请上传图片" : "";
         break;
       case "openVideo":
-        hotspotType.value = "视频";
         str = hotspotConfig.value.linkUrl ? "" : "请上传视频";
         break;
       case "openText":
-        hotspotType.value = "文本";
         str = hotspotConfig.value.text ? "" : "请输入文本内容";
         break;
       case "openAudio":
-        hotspotType.value = "音频";
         str = hotspotConfig.value.mediaUrl ? "" : "请上传音频";
         break;
     }
@@ -276,8 +294,9 @@ const saveHotspot = () => {
         type: "success",
         duration: 1000,
       });
+      setHotspotConfig({ name: hotspotConfig.value.name, state: "used" });
+      setHeaderNum(2);
     }
-    setHotspotConfig({ name: hotspotConfig.value.name, state: "used" });
   }
 };
 const delHotspot = () => {
@@ -303,29 +322,34 @@ watch(
       percent.value = +scale.value * 50;
       switch (newConfig.type) {
         case "loadPano":
+          hotspotType.value = "全景切换";
           sceneKey.value = newConfig.sceneKey;
           blend.value = newConfig.blend;
           keepView.value = !!newConfig.keepView;
           break;
         case "loadUrl":
+          hotspotType.value = "超链接";
           linkUrl.value = newConfig.linkUrl;
           target.value = newConfig.target === "_blank" ? 1 : 0;
           break;
         //click/loop
         case "openImage":
+          hotspotType.value = "图片";
           imgList.value = newConfig.imageList;
           switchMode.value = newConfig.switchMode === "loop" ? 1 : 0;
           imgTime.value = newConfig.interval;
           break;
         case "openVideo":
-          console.log(newConfig.linkUrl);
+          hotspotType.value = "视频";
           videoUrl.value = newConfig.linkUrl;
           getVideo();
           break;
         case "openText":
+          hotspotType.value = "文本";
           text.value = newConfig.text;
           break;
         case "openAudio":
+          hotspotType.value = "音频";
           mediaUrl.value = newConfig.mediaUrl;
           getMusic();
           break;
@@ -372,12 +396,10 @@ watch(hotspotIndex, () => {});
             placeholder="请选择类型"
             @change="(value) => changeHotspot('sceneKey', value)"
           >
-            <el-option
-              v-for="item in sceneObj"
-              :key="item._key"
-              :label="item.name"
-              :value="item._key"
-            />
+            <template v-for="item in sceneList" :key="item._key">
+              <!-- v-if="item._key !== sceneConfig?._key" -->
+              <el-option :label="item.name" :value="item._key" />
+            </template>
           </el-select>
         </div>
         <div class="pano-item">
@@ -434,14 +456,7 @@ watch(hotspotIndex, () => {});
           <div class="pano-item-title" style="width: 100%">
             <div>图片</div>
             <div class="upload-button">
-              <el-button
-                type="success"
-                round
-                color="#86b93f"
-                style="color: #fff"
-                @click=""
-                >上传</el-button
-              >
+              <el-button type="success" round>上传</el-button>
               <input
                 type="file"
                 accept="image/*"
@@ -460,6 +475,15 @@ watch(hotspotIndex, () => {});
               :key="`img${index}`"
             >
               <img :src="item" alt="" />
+              <div class="list-close">
+                <el-icon
+                  @click="delImg(index)"
+                  style="cursor: pointer"
+                  :size="18"
+                >
+                  <Close />
+                </el-icon>
+              </div>
             </div>
           </div>
         </div>
@@ -495,14 +519,7 @@ watch(hotspotIndex, () => {});
           <div class="pano-item-title" style="width: 100%">
             <div>视频</div>
             <div class="upload-button">
-              <el-button
-                type="success"
-                round
-                color="#86b93f"
-                style="color: #fff"
-                @click=""
-                >上传</el-button
-              >
+              <el-button type="success" round>上传</el-button>
               <input
                 type="file"
                 accept="video/*"
@@ -515,16 +532,28 @@ watch(hotspotIndex, () => {});
             </div>
           </div>
         </div>
-        <div class="pano-item-video">
+        <div class="pano-item-media">
           <div
-            class="pano-video-item"
+            class="pano-media-item"
             v-for="(item, index) in videoList"
             :key="`video${index}`"
             @click="changeHotspot('linkUrl', item.url)"
           >
-            <div class="pano-video-name">{{ item.name }}</div>
-            <div v-if="videoUrl === item.url">
-              <el-icon><Check /></el-icon>
+            <div class="pano-media-name single-to-long">{{ item.name }}</div>
+            <div class="pano-media-button">
+              <el-icon v-if="videoUrl === item.url" style="margin-left: 10px"
+                ><Check
+              /></el-icon>
+              <el-icon
+                v-else
+                class="pano-media-delete"
+                @click="
+                  $event.stopPropagation();
+                  delIndex = index;
+                  deleteMediaVisible = true;
+                "
+                ><Delete
+              /></el-icon>
             </div>
           </div>
         </div>
@@ -548,14 +577,7 @@ watch(hotspotIndex, () => {});
           <div class="pano-item-title" style="width: 100%">
             <div>音频</div>
             <div class="upload-button">
-              <el-button
-                type="success"
-                round
-                color="#86b93f"
-                style="color: #fff"
-                @click=""
-                >上传</el-button
-              >
+              <el-button type="success" round>上传</el-button>
               <input
                 type="file"
                 accept="audio/*"
@@ -567,31 +589,36 @@ watch(hotspotIndex, () => {});
               />
             </div>
           </div>
-          <div class="pano-item-video">
+          <div class="pano-item-media">
             <div
-              class="pano-video-item"
+              class="pano-media-item"
               v-for="(item, index) in musicList"
               :key="`music${index}`"
               @click="changeHotspot('mediaUrl', item.url)"
             >
-              <div class="pano-video-name">{{ item.name }}</div>
-              <div v-if="mediaUrl === item.url">
-                <el-icon><Check /></el-icon>
+              <div class="pano-media-name single-to-long">{{ item.name }}</div>
+              <div class="pano-media-button">
+                <el-icon v-if="mediaUrl === item.url" style="margin-left: 10px"
+                  ><Check
+                /></el-icon>
+                <el-icon
+                  v-else
+                  class="pano-media-delete"
+                  @click="
+                    $event.stopPropagation();
+                    delIndex = index;
+                    deleteMediaVisible = true;
+                  "
+                  ><Delete
+                /></el-icon>
               </div>
             </div>
           </div>
         </div>
       </template>
     </div>
-    <!-- <el-button type="primary" @click="createHostspot">Primary</el-button>
-    <div @click="gotoHostspot">123</div> -->
     <div class="hostspot-button">
-      <el-button
-        type="success"
-        round
-        color="#86b93f"
-        style="color: #fff; width: 40%"
-        @click="saveHotspot"
+      <el-button type="success" round style="width: 40%" @click="saveHotspot"
         >完成</el-button
       >
       <el-button
@@ -608,11 +635,11 @@ watch(hotspotIndex, () => {});
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="deleteVisible = false">取消</el-button>
-          <el-button type="primary" @click="delHotspot()">确认</el-button>
+          <el-button type="success" @click="delHotspot()">确认</el-button>
         </span>
       </template>
     </el-dialog>
-    <el-dialog v-model="logoVisible" title="更换图标" width="50vw">
+    <el-dialog v-model="logoVisible" title="更换图标" width="45vw">
       <div class="logo-container">
         <div
           class="logo-item"
@@ -626,12 +653,17 @@ watch(hotspotIndex, () => {});
           <img :src="item.url" alt="" />
         </div>
       </div>
-      <!-- <template #footer>
-      <span class="dialog-footer">
-        <el-button @click="logoVisible = false">取消</el-button>
-        <el-button type="primary" @click="logoVisible = false">确认</el-button>
-      </span>
-    </template> -->
+    </el-dialog>
+    <el-dialog v-model="deleteMediaVisible" title="删除提示" width="30%">
+      <div style="padding: 20px">
+        是否删除该{{ hotspotIndex === 5 ? "音乐" : "视频" }}
+      </div>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="deleteVisible = false">取消</el-button>
+          <el-button type="success" @click="deleteMedia()">确认</el-button>
+        </span>
+      </template>
     </el-dialog>
   </div>
 </template>
@@ -665,25 +697,49 @@ watch(hotspotIndex, () => {});
       .img-item {
         width: 60px;
         height: 60px;
+        margin-right: 10px;
+        position: relative;
+        z-index: 1;
         img {
           width: 55px;
           height: 55px;
           object-fit: contain;
         }
+        .list-close {
+          position: absolute;
+          z-index: 2;
+          top: 0px;
+          right: 2px;
+          display: none;
+        }
+        &:hover .list-close {
+          display: block;
+        }
       }
     }
-    .pano-item-video {
+    .pano-item-media {
       width: 100%;
       height: calc(100% - 310px);
       @include scroll();
-      .pano-video-item {
+      .pano-media-item {
         width: 100%;
         height: 35px;
         @include flex(space-between, center, null);
-        .pano-video-name {
+        .pano-media-name {
           width: calc(100% - 70px);
           height: 35px;
           line-height: 35px;
+        }
+        .pano-media-button {
+          width: 30px;
+          height: 100%;
+          @include flex(flex-end, center, null);
+          .pano-media-delete {
+            display: none;
+          }
+        }
+        &:hover .pano-media-delete {
+          display: flex;
         }
       }
     }
@@ -695,11 +751,13 @@ watch(hotspotIndex, () => {});
     @include p-number(10px);
   }
 }
+
 .logo-container {
   width: 100%;
   height: 50vh;
   @include scroll();
   @include flex(null, center, flex);
+  @include p-number(15px);
   .logo-item {
     width: 10%;
     img {

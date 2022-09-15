@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { uploadFile } from "@/services/util";
 import appStore from "@/store";
+import { Close } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
 import { storeToRefs } from "pinia";
 import ProgressItem from "@/components/progressItem.vue";
@@ -23,6 +24,10 @@ const percent = ref<number>(50);
 const deleteVisible = ref<boolean>(false);
 const scale = ref<string>("1.0");
 const number = ref<number>(0);
+const interval = ref<any>(null);
+const rx = ref<number>(0);
+const ry = ref<number>(0);
+const rz = ref<number>(0);
 const changeText = (text) => {
   pano.value.set(`hotspot[${layerConfig.value.name}].html`, text);
   setLayerConfig({ text: text, name: layerConfig.value.name });
@@ -53,7 +58,13 @@ const updateMedia = (file, type) => {
     });
   }
 };
-
+const delImg = (index) => {
+  imgList.value.splice(index, 1);
+  changeLayer("imageList", imgList.value);
+  if (imgList.value.length > 0) {
+    pano.value.set(`hotspot[${layerConfig.value.name}].url`, imgList.value[0]);
+  }
+};
 const saveLayer = () => {
   if (layerConfig.value && hotspotIndex.value !== 8) {
     let str = "";
@@ -86,7 +97,41 @@ const saveLayer = () => {
       type: "success",
       duration: 1000,
     });
+    setViewPointConfig(null);
+    setHeaderNum(2);
     setViewPointConfig({ name: viewPointConfig.value.name, state: "used" });
+  }
+};
+const rotateLayer = (type, step) => {
+  let num = type === "rx" ? rx.value : type === "ry" ? ry.value : rz.value;
+  console.log(num);
+  //rx 上下 ry 前后 rz 左右
+  interval.value = setInterval(() => {
+    num = num + step;
+    switch (type) {
+      case "ry":
+        ry.value = num;
+        pano.value.set(`hotspot[${layerConfig.value.name}].ry`, num);
+      case "rx":
+        rx.value = num;
+        pano.value.set(`hotspot[${layerConfig.value.name}].rx`, num);
+      case "rz":
+        rz.value = num;
+        pano.value.set(`hotspot[${layerConfig.value.name}].rz`, num);
+    }
+  }, 100);
+  switch (type) {
+  }
+};
+const stopRotateLayer = (type) => {
+  clearInterval(interval.value);
+  switch (type) {
+    case "ry":
+      setLayerConfig({ name: layerConfig.value.name, ry: ry.value });
+    case "rx":
+      setLayerConfig({ name: layerConfig.value.name, rx: rx.value });
+    case "rz":
+      setLayerConfig({ name: layerConfig.value.name, rx: rz.value });
   }
 };
 const delLayer = () => {
@@ -141,6 +186,9 @@ watch(
           imgList.value = newConfig.imageList;
           switchMode.value = newConfig.switchMode === "loop" ? 1 : 0;
           imgTime.value = newConfig.interval;
+          rx.value = newConfig.rx ? parseInt(newConfig.rx) : 0;
+          ry.value = newConfig.ry ? parseInt(newConfig.ry) : 0;
+          rz.value = newConfig.rz ? parseInt(newConfig.rz) : 0;
           break;
       }
     }
@@ -205,14 +253,7 @@ watch(
         <div class="pano-item">
           <div class="pano-item-title" style="width: 100%">
             <div class="upload-button">
-              <el-button
-                type="success"
-                round
-                color="#86b93f"
-                style="color: #fff"
-                @click=""
-                >上传</el-button
-              >
+              <el-button type="success" round>上传</el-button>
               <input
                 type="file"
                 accept="image/*"
@@ -231,6 +272,15 @@ watch(
               :key="`img${index}`"
             >
               <img :src="item" alt="" />
+              <div class="list-close">
+                <el-icon
+                  @click="delImg(index)"
+                  style="cursor: pointer"
+                  :size="18"
+                >
+                  <Close />
+                </el-icon>
+              </div>
             </div>
           </div>
         </div>
@@ -257,6 +307,53 @@ watch(
                 style="width: 80px; margin-right: 10px"
                 @change="(value) => changeLayer('interval', value)"
               />秒
+            </div>
+          </div>
+        </div>
+        <div class="pano-item">
+          <div class="pano-item-title" style="width: 100%">旋转</div>
+          <div class="pano-item-button">
+            <div
+              type="success"
+              @mousedown="rotateLayer('ry', 1)"
+              @mouseup="stopRotateLayer('ry')"
+            >
+              向前
+            </div>
+            <div
+              type="success"
+              @mousedown="rotateLayer('ry', -1)"
+              @mouseup="stopRotateLayer('ry')"
+            >
+              向后
+            </div>
+            <div
+              type="success"
+              @mousedown="rotateLayer('rx', 1)"
+              @mouseup="stopRotateLayer('rx')"
+            >
+              向上
+            </div>
+            <div
+              type="success"
+              @mousedown="rotateLayer('rx', -1)"
+              @mouseup="stopRotateLayer('rx')"
+            >
+              向下
+            </div>
+            <div
+              type="success"
+              @mousedown="rotateLayer('rz', 1)"
+              @mouseup="stopRotateLayer('rz')"
+            >
+              向左
+            </div>
+            <div
+              type="success"
+              @mousedown="rotateLayer('rz', -1)"
+              @mouseup="stopRotateLayer('rz')"
+            >
+              向右
             </div>
           </div>
         </div>
@@ -307,12 +404,7 @@ watch(
       </template>
     </div>
     <div class="control-button">
-      <el-button
-        type="success"
-        round
-        color="#86b93f"
-        style="color: #fff; width: 40%"
-        @click="saveLayer"
+      <el-button type="success" round style="width: 40%" @click="saveLayer"
         >完成</el-button
       >
       <el-button
@@ -329,7 +421,7 @@ watch(
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="deleteVisible = false">取消</el-button>
-          <el-button type="primary" @click="delLayer()">确认</el-button>
+          <el-button type="success" @click="delLayer()">确认</el-button>
         </span>
       </template>
     </el-dialog>
@@ -357,10 +449,23 @@ watch(
       .img-item {
         width: 60px;
         height: 60px;
+        margin-right: 10px;
+        position: relative;
+        z-index: 1;
         img {
           width: 55px;
           height: 55px;
           object-fit: contain;
+        }
+        .list-close {
+          position: absolute;
+          z-index: 2;
+          top: 0px;
+          right: 2px;
+          display: none;
+        }
+        &:hover .list-close {
+          display: block;
         }
       }
     }
@@ -369,6 +474,17 @@ watch(
     width: 100%;
     height: 55px;
     @include flex(space-between, center, null);
+  }
+  .pano-item-button {
+    width: 100%;
+    @include flex(space-between, center, wrap);
+    > div {
+      width: 50%;
+      height: 45px;
+      line-height: 45px;
+      text-align: center;
+      cursor: pointer;
+    }
   }
 }
 </style>

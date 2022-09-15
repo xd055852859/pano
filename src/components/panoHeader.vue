@@ -7,14 +7,11 @@ import api from "@/services/api";
 import { ResultProps } from "@/interface/Common";
 import useClipboard from "vue-clipboard3";
 import router from "@/router";
+import useCheckUsed from "@/hooks/useCheckUsed";
 const { toClipboard } = useClipboard();
-const { setLeftNum, setHeaderNum, setPreviewVisible } = appStore.commonStore;
-const { leftNum, headerNum, previewVisible } = storeToRefs(
-  appStore.commonStore
-);
-const { hotspotIndex, pano, panoConfig, sceneConfig, sceneKey } = storeToRefs(
-  appStore.panoStore
-);
+const { setLeftNum, setHeaderNum } = appStore.commonStore;
+const { headerNum } = storeToRefs(appStore.commonStore);
+const { pano, panoConfig, sceneKey } = storeToRefs(appStore.panoStore);
 const { setHotspotIndex } = appStore.panoStore;
 const { hotspotObj, layerObj, viewPointArray } = storeToRefs(
   appStore.controlStore
@@ -25,8 +22,8 @@ const {
   setHotspotObj,
   setLayerObj,
   setViewPointConfig,
-  setViewPointArray,
 } = appStore.controlStore;
+const { savePano } = appStore.panoStore;
 
 const activeIndex = ref("1");
 
@@ -129,13 +126,25 @@ const getLayer = () => {
       pano.value.call(`assignstyle(hotspot[${name}],'textStyle')`);
       pano.value.set(`hotspot[${name}].css`, "color:#FFFFFF;font-size:14px");
     } else if (layerObj.value[key].type === "image") {
-      pano.value.set(`hotspot[${name}].url`, value.imageList[0]);
+      if (value.imageList && value.imageList[0]) {
+        pano.value.set(`hotspot[${name}].url`, value.imageList[0]);
+      } else {
+        pano.value.set(
+          `hotspot[${name}].url`,
+          "https://cdn-pano.qingtime.cn/hotspot(55).png"
+        );
+        pano.value.set(`hotspot[${name}].scale`, "1.0");
+      }
+      pano.value.set(`hotspot[${name}].rx`, value.rx ? value.rx : "0");
+      pano.value.set(`hotspot[${name}].ry`, value.ry ? value.ry : "0");
+      pano.value.set(`hotspot[${name}].rz`, value.rz ? value.rz : "0");
     }
     pano.value.set(`hotspot[${name}].scale`, value.scale ? value.scale : "1.0");
     pano.value.set(`hotspot[${name}].atv`, value.atv);
     pano.value.set(`hotspot[${name}].ath`, value.ath);
     pano.value.set(`hotspot[${name}].align`, "center");
     pano.value.set(`hotspot[${name}].ondown`, "draghotspot()");
+    pano.value.set(`hotspot[${name}].distorted`, "true");
     pano.value.set(`hotspot[${name}].onclick`, `getLayerName(${name})`);
   }
 };
@@ -188,10 +197,6 @@ const createHotspot = (index) => {
   let atv = pano.value.get(`view.vlookat`);
   let ath = pano.value.get(`view.hlookat`);
   pano.value.call(`addhotspot(${name})`);
-  pano.value.set(
-    `hotspot[${name}].url`,
-    "https://cdn-pano.qingtime.cn/hotspot(40).png"
-  );
   // pano.value.set(`hotspot[hotspot${name}].renderer`, "css3d");
   pano.value.set(`hotspot[${name}].scale`, "1.0");
   pano.value.set(`hotspot[${name}].atv`, atv);
@@ -200,18 +205,23 @@ const createHotspot = (index) => {
   pano.value.set(`hotspot[${name}].ondown`, "draghotspot()");
   let obj: any = {
     name: name,
-    url: "https://cdn-pano.qingtime.cn/hotspot(40).png",
     ath: ath,
     atv: atv,
     title: "",
     state: "unUsed",
     logoType: "normal",
+    scale: "1",
   };
   //0 全景 1 超链接 2 图片 3 视频 4 文本 5 音频
   switch (index) {
     case 0:
+      pano.value.set(
+        `hotspot[${name}].url`,
+        "https://cdn-pano.qingtime.cn/hotspot(49).png"
+      );
       obj = {
         ...obj,
+        url: "https://cdn-pano.qingtime.cn/hotspot(49).png",
         type: "loadPano",
         sceneKey: "",
         blend: "淡入淡出",
@@ -219,8 +229,13 @@ const createHotspot = (index) => {
       };
       break;
     case 1:
+      pano.value.set(
+        `hotspot[${name}].url`,
+        "https://cdn-pano.qingtime.cn/hotspot(43).png"
+      );
       obj = {
         ...obj,
+        url: "https://cdn-pano.qingtime.cn/hotspot(43).png",
         type: "loadUrl",
         linkUrl: "",
         //_blank _self
@@ -229,8 +244,13 @@ const createHotspot = (index) => {
       break;
     //click/loop
     case 2:
+      pano.value.set(
+        `hotspot[${name}].url`,
+        "https://cdn-pano.qingtime.cn/hotspot(46).png"
+      );
       obj = {
         ...obj,
+        url: "https://cdn-pano.qingtime.cn/hotspot(46).png",
         type: "openImage",
         imageList: [],
         switchMode: "loop",
@@ -238,22 +258,37 @@ const createHotspot = (index) => {
       };
       break;
     case 3:
+      pano.value.set(
+        `hotspot[${name}].url`,
+        "https://cdn-pano.qingtime.cn/hotspot(45).png"
+      );
       obj = {
         ...obj,
+        url: "https://cdn-pano.qingtime.cn/hotspot(45).png",
         type: "openVideo",
         linkUrl: "",
       };
       break;
     case 4:
+      pano.value.set(
+        `hotspot[${name}].url`,
+        "https://cdn-pano.qingtime.cn/hotspot(47).png"
+      );
       obj = {
         ...obj,
+        url: "https://cdn-pano.qingtime.cn/hotspot(47).png",
         type: "openText",
         text: "",
       };
       break;
     case 5:
+      pano.value.set(
+        `hotspot[${name}].url`,
+        "https://cdn-pano.qingtime.cn/hotspot(48).png"
+      );
       obj = {
         ...obj,
+        url: "https://cdn-pano.qingtime.cn/hotspot(48).png",
         type: "openAudio",
         mediaUrl: "",
       };
@@ -273,7 +308,7 @@ const createLayer = (index: number) => {
     atv: atv,
   };
   pano.value.call(`addhotspot(${name})`);
-  pano.value.set(`hotspot[${name}].scale`, "1.0");
+
   pano.value.set(`hotspot[${name}].align`, "center");
   pano.value.set(`hotspot[${name}].ondown`, "draghotspot()");
   pano.value.set(`hotspot[${name}].ath`, ath);
@@ -284,6 +319,7 @@ const createLayer = (index: number) => {
       pano.value.set(`hotspot[${name}].css`, "color:#FFFFFF;font-size:14px");
       pano.value.call(`assignstyle(hotspot[${name}],'textStyle')`);
       pano.value.set(`hotspot[${name}].padding`, "10");
+      pano.value.set(`hotspot[${name}].scale`, "1.0");
       pano.value.set(`hotspot[${name}].onclick`, `getLayerName(${name})`);
       obj = {
         ...obj,
@@ -297,6 +333,13 @@ const createLayer = (index: number) => {
     case 7:
       pano.value.set(`hotspot[${name}].type`, "image");
       pano.value.set(`hotspot[${name}].onclick`, `getLayerName(${name})`);
+      pano.value.set(
+        `hotspot[${name}].url`,
+        "https://cdn-pano.qingtime.cn/hotspot(55).png"
+      );
+      pano.value.set(`hotspot[${name}].scale`, "1.0");
+      pano.value.set(`hotspot[${name}].distorted`, "true");
+
       obj = {
         ...obj,
         type: "image",
@@ -304,6 +347,9 @@ const createLayer = (index: number) => {
         switchMode: "loop",
         interval: "2",
         scale: "1.0",
+        rx: "0",
+        ry: "0",
+        rz: "0",
       };
       setLayerConfig({ ...obj });
       break;
@@ -325,99 +371,7 @@ const createLayer = (index: number) => {
       break;
   }
 };
-const formatAthAtv = (obj, type) => {
-  let newarr = type === "obj" ? Object.values(obj) : [...obj];
-  let arr: any = [];
-  let state = false;
-  newarr.forEach((item: any, index) => {
-    if (item.state === "used") {
-      item.ath = pano.value.get(`hotspot[${item.name}].ath`)
-        ? pano.value.get(`hotspot[${item.name}].ath`)
-        : item.ath;
-      item.atv = pano.value.get(`hotspot[${item.name}].atv`)
-        ? pano.value.get(`hotspot[${item.name}].atv`)
-        : item.atv;
-      arr.push(item);
-    } else {
-      state = true;
-    }
-  });
-  return [arr, state];
-};
 
-const savePano = async (type?: string) => {
-  let savePanoRes: any = null;
-  let saveSceneRes: any = null;
-  let hotspot: any = [];
-  let layer: any = [];
-  let viewPoints: any = [];
-  let state = false;
-  if (panoConfig.value && sceneConfig.value) {
-    let panoObj = {
-      name: panoConfig.value.name,
-      tagKey: panoConfig.value.tagKey,
-      labels: panoConfig.value.labels,
-      public: panoConfig.value.public,
-      location: panoConfig.value.location,
-      config: panoConfig.value.config,
-      panoKey: panoConfig.value._key,
-      sandTable: panoConfig.value?.sandTable,
-      gyro: true,
-    };
-    savePanoRes = (await api.request.patch("pano", {
-      ...panoObj,
-    })) as ResultProps;
-    if (hotspotObj.value) {
-      [hotspot, state] = formatAthAtv(hotspotObj.value, "obj");
-    }
-    if (layerObj.value) {
-      [layer, state] = formatAthAtv(layerObj.value, "obj");
-    }
-    if (viewPointArray.value) {
-      [viewPoints, state] = formatAthAtv(viewPointArray.value, "arr");
-    }
-    if (state) {
-      ElMessage({
-        message: "尚有控件或热点内容未保存",
-        type: "warning",
-        duration: 1000,
-      });
-    }
-    let sceneObj = {
-      sceneKey: sceneConfig.value._key,
-      viewAngle: sceneConfig.value.viewAngle,
-      // url: "", loop: false
-      BGM: sceneConfig.value?.BGM ? sceneConfig.value?.BGM : {},
-      specialEffect: sceneConfig.value?.specialEffect
-        ? sceneConfig.value?.specialEffect
-        : {},
-      hotspots: hotspot,
-      layers: layer,
-      ttsContent: sceneConfig.value?.ttsContent,
-      //{
-      //   sky: { scale: "1.0", url: "" },
-      //   ground: { scale: "1.0", url: "" },
-      // },
-      shade: sceneConfig.value?.shade ? sceneConfig.value?.shade : {},
-      viewPoints: viewPoints,
-    };
-
-    saveSceneRes = (await api.request.patch("scene", {
-      ...sceneObj,
-    })) as ResultProps;
-    if (savePanoRes.msg === "OK" && saveSceneRes.msg === "OK") {
-      if (type) {
-        router.push(`/preview/${panoConfig.value._key}/${sceneKey.value}`);
-      } else {
-        ElMessage({
-          message: "保存成功",
-          type: "success",
-          duration: 1000,
-        });
-      }
-    }
-  }
-};
 const sharePano = () => {
   toClipboard(
     `${window.location.protocol}//${window.location.host}/#/preview/${panoConfig.value?._key}/${sceneKey.value}`
@@ -509,9 +463,16 @@ watch(headerNum, (newNum, oldNum) => {
       </el-menu>
     </div>
     <div class="right">
-      <div @click="savePano('preview')"> <iconpark-icon name="preview" :size="24" style="margin-right:2px"/>预览</div>
-      <div @click="savePano()">
-        <iconpark-icon name="save" :size="24" style="margin-right:2px"/>保存
+      <!-- <div @click="$router.push(`/preview/${panoConfig?._key}/${sceneKey}`)"> -->
+      <div @click="savePano('preview')">
+        <iconpark-icon
+          name="preview"
+          :size="24"
+          style="margin-right: 2px"
+        />预览
+      </div>
+      <div @click="savePano('save')">   
+        <iconpark-icon name="save" :size="24" style="margin-right: 2px" />保存
       </div>
       <div @click="sharePano">
         <iconpark-icon name="share" :size="24" />分享

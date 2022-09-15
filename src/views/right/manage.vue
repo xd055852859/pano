@@ -10,7 +10,7 @@ const { setPanoConfig } = appStore.panoStore;
 const labelsInput = ref<string>("");
 const sandType = ref<number>(0);
 const cruiseTime = ref<string>("");
-const publicWorks = ref<boolean>(false);
+const littleplanet = ref<boolean>(false);
 const panoTypeKey = ref<string>("");
 const name = ref<string>("");
 const typeName = ref<string>("");
@@ -101,6 +101,9 @@ watch(
       panoTypeKey.value = newConfig?.tagKey ? newConfig.tagKey : "";
       name.value = newConfig.name;
       blend.value = newConfig.config?.blend ? newConfig.config.blend : "";
+      littleplanet.value = newConfig.config?.littleplanet
+        ? newConfig.config.littleplanet
+        : false;
     }
   },
   { immediate: true }
@@ -166,6 +169,12 @@ watch(
         />
       </el-select>
     </div>
+    <el-checkbox
+      v-model="littleplanet"
+      label="小行星开场"
+      size="large"
+      @change="changeConfig('littleplanet', littleplanet)"
+    />
     <!-- 
 
     <div class="pano-item">
@@ -182,7 +191,7 @@ watch(
         />秒
       </div>
     </div>
-    <el-checkbox v-model="publicWorks" label="公开作品" size="large" />
+
     <div>
       <div>设置位置</div>
       <div></div>
@@ -207,4 +216,10 @@ watch(
   }
 }
 </style>
-<style></style>
+<style lang="scss">
+.pano-right-manage {
+  .el-checkbox__label {
+    color: #fff;
+  }
+}
+</style>

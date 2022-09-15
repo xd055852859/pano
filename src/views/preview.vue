@@ -4,13 +4,15 @@ import CommonPano from "@/components/commonPano.vue";
 import { storeToRefs } from "pinia";
 import appStore from "@/store";
 import CommonMap from "@/components/commonMap.vue";
-
+import Loading from "@/components/loading/loading2.vue";
 const route = useRoute();
 const { hotspotObj } = storeToRefs(appStore.controlStore);
+const { token } = storeToRefs(appStore.authStore);
+const { createFile } = storeToRefs(appStore.commonStore);
 const { sceneConfig, sceneList, previewPano, panoConfig } = storeToRefs(
   appStore.panoStore
 );
-const { getPanoInfo, setSceneKey } = appStore.panoStore;
+const { getPanoInfo, setSceneKey, setPreviewPano } = appStore.panoStore;
 const hotspot = ref<any>(null);
 const previewVisible = ref<boolean>(false);
 const sceneKey = ref<string>("");
@@ -20,6 +22,9 @@ const dialogTop = ref<string>("5vh");
 const dialogWidth = ref<string>("0");
 const dialogHeight = ref<string>("0");
 const locationArray = ref<any>([]);
+const bgMusicUrl = ref<string>("");
+const bgMusicRef = ref<any>(null);
+const playState = ref<boolean>(false);
 
 const blendObj = {
   淡入淡出: "BLEND(1.0, easeInCubic)",
@@ -36,8 +41,13 @@ const blendObj = {
 };
 onMounted(() => {
   if (!panoConfig.value) {
-    getPanoInfo(route.params.panoKey, "preview");
-    setSceneKey(route.params.sceneKey as string);
+    getPanoInfo(
+      route.params.panoKey,
+      route.params.sceneKey === "create" ? "create" : "preview"
+    );
+    if (route.params.sceneKey !== "create") {
+      setSceneKey(route.params.sceneKey as string);
+    }
   }
   window.addEventListener("setItemEvent", function (e: any) {
     if (e.key === "hotspotName" && e.newValue) {
@@ -50,7 +60,9 @@ onMounted(() => {
     }
   });
 });
-
+onUnmounted(() => {
+  setPreviewPano(null);
+});
 const moveScene = (e) => {
   //@ts-ignore
   bottomRef.value.scrollLeft += e.deltaY;
@@ -70,6 +82,15 @@ const chooseScene = (path, key) => {
     }')`
   );
 };
+const playMusic = () => {
+  playState.value = !playState.value;
+  if (playState.value) {
+    console.log(bgMusicRef.value);
+    bgMusicRef.value.play();
+  } else {
+    bgMusicRef.value.pause();
+  }
+};
 watch(sceneConfig, (newConfig) => {
   console.log(newConfig);
   if (newConfig?.ttsContent) {
@@ -81,19 +102,26 @@ watch(sceneConfig, (newConfig) => {
     n.src = url;
     n.play();
   }
-});
-watch(panoConfig, (newConfig) => {
-  if (newConfig?.sandTable) {
-    console.log(newConfig?.sandTable);
-    locationArray.value = [];
-    for (let key in newConfig?.sandTable) {
-      if (key !== "center" && key !== "zoom" && key !== "_key") {
-        console.log(key);
-        locationArray.value.push(newConfig.sandTable[key]);
-      }
-    }
+  if (newConfig?.BGM) {
+    bgMusicUrl.value = newConfig?.BGM.url;
   }
 });
+watch(
+  panoConfig,
+  (newConfig) => {
+    if (newConfig?.sandTable) {
+      console.log(newConfig?.sandTable);
+      locationArray.value = [];
+      for (let key in newConfig?.sandTable) {
+        if (key !== "center" && key !== "zoom" && key !== "_key") {
+          console.log(key);
+          locationArray.value.push(newConfig.sandTable[key]);
+        }
+      }
+    }
+  },
+  { immediate: true }
+);
 watch(hotspot, (newHotspot) => {
   if (newHotspot) {
     switch (newHotspot.type) {
@@ -127,78 +155,115 @@ watch(hotspot, (newHotspot) => {
 </script>
 <template>
   <div class="preview-container">
-    <CommonPano type="preview" panoId="previewPano" />
-    <!--       -->
-    <el-dialog
-      v-model="previewVisible"
-      :title="dialogTitle"
-      :top="dialogTop"
-      :width="dialogWidth"
-      destroy-on-close
-    >
-      <el-carousel
-        trigger="click"
-        :height="dialogHeight"
-        v-if="hotspot.imageList && hotspot.type === 'openImage'"
-        :interval="+hotspot.interval * 1000"
-        :loop="hotspot.switchMode === 'loop'"
+    <template v-if="sceneConfig?.multires">
+      <CommonPano type="preview" panoId="previewPano" />
+      <el-dialog
+        v-model="previewVisible"
+        :title="dialogTitle"
+        :top="dialogTop"
+        :width="dialogWidth"
+        destroy-on-close
       >
-        <el-carousel-item
-          v-for="(item, index) in hotspot.imageList"
-          :key="`hotspotImg${index}`"
-          ><div class="preview-img"><img :src="item" alt="" /></div>
-        </el-carousel-item>
-      </el-carousel>
+        <el-carousel
+          trigger="click"
+          :height="dialogHeight"
+          v-if="hotspot.imageList && hotspot.type === 'openImage'"
+          :interval="+hotspot.interval * 1000"
+          :loop="hotspot.switchMode === 'loop'"
+        >
+          <el-carousel-item
+            v-for="(item, index) in hotspot.imageList"
+            :key="`hotspotImg${index}`"
+            ><div class="preview-img"><img :src="item" alt="" /></div>
+          </el-carousel-item>
+        </el-carousel>
+        <div
+          v-if="hotspot.type === 'openText'"
+          class="preview-text"
+          style="padding: 20px; box-sizing: border-box"
+        >
+          {{ hotspot.text }}
+        </div>
+        <div
+          class="preview-audio dp-center-center"
+          v-if="hotspot.type === 'openAudio'"
+        >
+          <audio controls :src="hotspot.mediaUrl" autoplay style="width: 90%">
+            您的浏览器不支持 audio 元素。
+          </audio>
+        </div>
+        <div
+          class="preview-video dp-center-center"
+          v-if="hotspot.type === 'openVideo'"
+        >
+          <video controls :src="hotspot.linkUrl" autoplay style="height: 90%">
+            您的浏览器不支持 video 元素。
+          </video>
+        </div>
+      </el-dialog>
       <div
-        v-if="hotspot.type === 'openText'"
-        class="preview-text"
-        style="padding: 20px; box-sizing: border-box"
+        class="preview-bottom"
+        ref="bottomRef"
+        @wheel.prevent.stop="moveScene"
       >
-        {{ hotspot.text }}
+        <div
+          class="screen"
+          v-for="(item, index) in sceneList"
+          @click="chooseScene(item.xmlPath, item._key)"
+          :key="`scene${index}`"
+          :style="item._key === sceneKey ? { border: '3px solid #86b93f' } : {}"
+        >
+          <img :src="item.cover" alt="" />
+        </div>
       </div>
       <div
-        class="preview-audio dp-center-center"
-        v-if="hotspot.type === 'openAudio'"
+        class="preview-map"
+        v-if="panoConfig?.sandTable && sceneConfig && locationArray.length > 0"
       >
-        <audio controls :src="hotspot.mediaUrl" autoplay style="width: 90%">
-          您的浏览器不支持 audio 元素。
-        </audio>
+        <CommonMap
+          :mapId="'previewMap'"
+          :width="'100%'"
+          :height="'100%'"
+          :data="locationArray"
+          :zoom="panoConfig.sandTable?.zoom"
+          :center="panoConfig.sandTable?.center"
+          @chooseMarker="chooseMarker"
+          type="preview"
+        />
       </div>
-      <div
-        class="preview-video dp-center-center"
-        v-if="hotspot.type === 'openVideo'"
-      >
-        <video controls :src="hotspot.linkUrl" autoplay style="height: 90%">
-          您的浏览器不支持 video 元素。
-        </video>
+      <div class="preview-button" v-if="token">
+        <el-button
+          type="success"
+          round
+          style="width: 120px"
+          @click="$router.push(`/view/pano/${panoConfig?._key}`)"
+          >编辑</el-button
+        >
       </div>
-    </el-dialog>
-    <div class="preview-bottom" ref="bottomRef" @wheel.prevent.stop="moveScene">
-      <div
-        class="screen"
-        v-for="(item, index) in sceneList"
-        @click="chooseScene(item.xmlPath, item._key)"
-        :key="`scene${index}`"
-        :style="item._key === sceneKey ? { border: '3px solid #86b93f' } : {}"
-      >
-        <img :src="item.cover" alt="" />
+      <div class="preview-icon">
+        <div
+          class="preview-icon-item"
+          :style="{ animation: playState ? 'fadenum 3s infinite' : '' }"
+          @click="playMusic"
+          v-if="bgMusicUrl"
+        >
+          <iconpark-icon name="bgm" :size="40" />
+        </div>
+      </div>
+    </template>
+    <div class="preview-loading" v-else>
+      <img :src="createFile" alt="" v-if="createFile" />
+      <div class="preview-loading-mark">
+        <Loading :text="'生成全景中'" />
       </div>
     </div>
-    <div
-      class="preview-map"
-      v-if="panoConfig?.sandTable && sceneConfig && locationArray.length > 0"
-    >
-      <CommonMap
-        :mapId="'previewMap'"
-        :width="'100%'"
-        :height="'100%'"
-        :data="locationArray"
-        :zoom="panoConfig.sandTable?.zoom"
-        :center="panoConfig.sandTable?.center"
-        @chooseMarker="chooseMarker"
-        type="preview"
-      />
-    </div>
+    <div></div>
+    <audio
+      :src="bgMusicUrl"
+      ref="bgMusicRef"
+      loop
+      class="preview-music"
+    ></audio>
   </div>
 </template>
 <style scoped lang="scss">
@@ -300,6 +365,60 @@ watch(hotspot, (newHotspot) => {
     right: 0px;
     top: 0px;
   }
+  .preview-loading {
+    width: 100vw;
+    height: 100vh;
+    position: absolute;
+    z-index: 2;
+    right: 0px;
+    top: 0px;
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .preview-loading-mark {
+      width: 100vw;
+      height: 100vh;
+      position: absolute;
+      z-index: 3;
+      right: 0px;
+      top: 0px;
+      background: rgba(30, 30, 30, 0.5);
+      @include flex(center, center, null);
+    }
+    // background: black;
+  }
+  .preview-button {
+    position: absolute;
+    z-index: 2;
+    right: 10px;
+    top: 10px;
+  }
+  .preview-icon {
+    width: 50px;
+    position: absolute;
+    z-index: 2;
+    right: 10px;
+    top: 60px;
+    @include flex(center, null, wrap);
+    .preview-icon-item {
+      width: 30px;
+      height: 30px;
+      cursor: pointer;
+      @include flex(center, center, wrap);
+      transform-origin: 50% 50%;
+    }
+  }
+  .preview-music {
+    opacity: 0;
+  }
 }
 </style>
-<style></style>
+<style>
+@keyframes fadenum {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+</style>

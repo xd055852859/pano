@@ -10,6 +10,7 @@ export interface PanoConfig {
   config?: any;
   sandTable?: any;
   _key: string;
+  littleplanet?: boolean;
 }
 
 export interface PanoTag {

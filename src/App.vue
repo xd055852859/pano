@@ -3,6 +3,7 @@ import { getSearchParamValue } from "@/services/util";
 import { storeToRefs } from "pinia";
 import appStore from "@/store";
 import request from "@/services/api";
+import setTheme from "./hooks/theme";
 const { setToken } = appStore.authStore;
 const { setSceneKey } = appStore.panoStore;
 const { setLeftNum, setCreateState } = appStore.commonStore;
@@ -26,12 +27,13 @@ onBeforeMount(() => {
       socket.on("createOK", (data) => {
         console.log(data)
         //删除
-        setLeftNum(1);
+        setLeftNum(0);
         setSceneKey(data._key);
         setCreateState(false);
       });
     });
   }
+  setTheme("#86b93f");
   // let url = window.location.href;
   //自动切换为https
   // if (url.indexOf("http://localhost") === -1 && url.indexOf("https") < 0) {

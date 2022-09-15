@@ -10,6 +10,7 @@ export const controlStore = defineStore("controlStore", () => {
   const viewPointConfig = ref<any>(null);
   const viewPointArray = ref<any>(null);
   const setHotspotConfig = (newHotspotConfig: any) => {
+    console.log("???", newHotspotConfig);
     if (newHotspotConfig) {
       hotspotConfig.value = { ...hotspotConfig.value, ...newHotspotConfig };
       if (!hotspotObj.value) {
@@ -51,7 +52,7 @@ export const controlStore = defineStore("controlStore", () => {
   };
   const setViewPointConfig = (newViewPointConfig: any) => {
     if (newViewPointConfig) {
-      console.log(newViewPointConfig)
+      console.log(newViewPointConfig);
       viewPointConfig.value = {
         ...viewPointConfig.value,
         ...newViewPointConfig,
@@ -78,6 +79,7 @@ export const controlStore = defineStore("controlStore", () => {
   const setViewPointArray = (newViewPointsArray: any) => {
     viewPointArray.value = newViewPointsArray;
   };
+
   return {
     hotspotConfig,
     setHotspotConfig,

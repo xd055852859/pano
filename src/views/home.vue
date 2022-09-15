@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ResultProps } from "@/interface/Common";
-import { Close } from "@element-plus/icons-vue";
+import { Close, Files } from "@element-plus/icons-vue";
 import api from "@/services/api";
 import appStore from "@/store";
 import axios from "axios";
@@ -10,7 +10,7 @@ import CommonHeader from "../components/commonHeader.vue";
 const router = useRouter();
 const dayjs: any = inject("dayjs");
 const { token } = storeToRefs(appStore.authStore);
-const { setCreateState, setCreateFile } = appStore.commonStore;
+const { setCreateFile } = appStore.commonStore;
 const { clearPano } = appStore.panoStore;
 const panoList = ref<any>([]);
 const deleteVisible = ref<boolean>(false);
@@ -20,49 +20,78 @@ onMounted(() => {
   clearPano();
   getPanoList();
 });
-const uploadPanoImg = async (files) => {
-  const formData = new FormData();
-  if (files.length === 0) {
+const uploadPanoImg = async (file) => {
+  if (file.size > 31457280) {
     ElMessage({
-      message: "请上传全景图片",
-      type: "error",
-      duration: 1000,
+      message: "请上传不大于30M的图片",
+      type: "warning",
+      duration: 3000,
     });
     return;
   }
-  // 遍历当前临时文件List,将上传文件添加到FormData对象中
-  [...files].forEach((item) => formData.append("images", item));
-  console.log(files);
-  ElMessage({
-    message: "生成全景中...",
-    type: "warning",
-    duration: 4000,
-  });
-  // 调用后端接口,发送请求
-  const createRes = (await axios.post(
-    "https://panodata2.qingtime.cn/scene/new",
-    formData,
-    {
-      // 因为我们上传了图片,因此需要单独执行请求头的Content-Type
-      headers: {
-        // 表示上传的是文件,而不是普通的表单数据
-        "Content-Type": "multipart/form-data",
-        token: token.value,
-      },
-    }
-  )) as ResultProps;
+  // let regExp = /[\u4E00-\u9FA5\uF900-\uFA2D]{1,}/;
+  // if (regExp.test(file.name)) {
+  //   ElMessage({
+  //     message: "文件名请勿使用中文",
+  //     type: "warning",
+  //     duration: 3000,
+  //   });
+  //   return;
+  // }
 
-  if (createRes.data.msg === "OK") {
-    // console.log(createRes.data);
-    ElMessage({
-      message: "创建全景成功",
-      type: "success",
-      duration: 1000,
-    });
-    setCreateState(true);
-    setCreateFile(files[0]);
-    router.push("/view/pano/" + createRes.data.data);
-  }
+  let url = window.URL || window.webkitURL;
+  console.log(url.createObjectURL(file)); //this.files[0]为选中的文件(索引为0因为是单选一个),这里是图片
+  let img = new Image(); //手动创建一个Image对象
+  img.src = url.createObjectURL(file); //创建Image的对象的url
+  img.onload = async () => {
+    if (img.height === img.width || img.width / img.height === 2) {
+      //请使用正方形或者2:1的尺寸的图片
+      const formData = new FormData();
+      // Object.defineProperty(file, "name", {
+      //   writable: true, //设置属性为可写
+      // });
+      // file.name = "pano" + new Date().getTime();
+      // 遍历当前临时文件List,将上传文件添加到FormData对象中
+      let arr = file.name.split(".");
+      let newFile = new File(
+        [file],
+        `pano${new Date().getTime()}.${arr[arr.length - 1]}`,
+        {
+          type: file.type,
+        }
+      );
+      formData.append("images", newFile);
+      console.log(newFile);
+      const createRes = (await api.request.post("pano", {})) as ResultProps;
+
+      if (createRes.msg === "OK") {
+        // console.log(createRes.data);
+        ElMessage({
+          message: "创建全景成功",
+          type: "success",
+          duration: 1000,
+        });
+        // setCreateState(true);
+        setCreateFile(file);
+        router.push(`/preview/${createRes.data._key}/create`);
+        formData.append("panoKey", createRes.data._key);
+        axios.post("https://panodata2.qingtime.cn/scene/new", formData, {
+          // 因为我们上传了图片,因此需要单独执行请求头的Content-Type
+          headers: {
+            // 表示上传的是文件,而不是普通的表单数据
+            "Content-Type": "multipart/form-data",
+            token: token.value,
+          },
+        });
+      }
+    } else {
+      ElMessage({
+        message: "请选择正方形或宽高比2:1的图片",
+        type: "warning",
+        duration: 3000,
+      });
+    }
+  };
 };
 const delPano = async () => {
   deleteVisible.value = false;
@@ -96,32 +125,26 @@ const getPanoList = async () => {
   <CommonHeader />
   <div class="pano-container">
     <div class="pano-header">
-      <div
-        class="upload-button pano-header-button"
-        style="justify-content: flex-start"
-      >
-        <div class="button">
-          <iconpark-icon name="createLogo" :size="45" />
-          <div class="title">新建全景预览</div>
+      <el-tooltip content="请选择正方形或宽高比2:1的图片">
+        <div
+          class="upload-button pano-header-button"
+          style="justify-content: flex-start"
+        >
+          <div class="button">
+            <iconpark-icon name="createLogo" :size="45" />
+            <div class="title">新建全景预览</div>
+          </div>
+          <input
+            type="file"
+            accept=".png,.jpg,.jpeg"
+            @change="
+              //@ts-ignore
+              uploadPanoImg($event.target.files[0])
+            "
+            class="upload-img"
+          />
         </div>
-        <input
-          type="file"
-          accept=".png,.jpg,.jpeg"
-          @change="
-            //@ts-ignore
-            uploadPanoImg($event.target.files)
-          "
-          class="upload-img"
-        />
-      </div>
-      <!-- <el-button
-          type="success"
-          round
-          color="#86b93f"
-          style="color: #fff"
-          @click=""
-          >新建全景浏览</el-button
-        > -->
+      </el-tooltip>
     </div>
     <div class="pano-home">
       <div class="pano-list">
@@ -179,7 +202,7 @@ const getPanoList = async () => {
         <template #footer>
           <span class="dialog-footer">
             <el-button @click="deleteVisible = false">取消</el-button>
-            <el-button type="primary" @click="delPano()">确认</el-button>
+            <el-button type="success" @click="delPano()">确认</el-button>
           </span>
         </template>
       </el-dialog>

@@ -5,7 +5,8 @@ import { ElMessage } from "element-plus";
 import useXml from "@/hooks/useXml";
 
 import { storeToRefs } from "pinia";
-const { fovPano, pano, panoConfig, sceneKey, sceneConfig } = storeToRefs(
+import { containsProp } from "@vueuse/shared";
+const { fovPano,previewPano, pano, panoConfig, sceneKey, sceneConfig } = storeToRefs(
   appStore.panoStore
 );
 const { setPano, setHotspotName, setFovPano, setPreviewPano } =
@@ -19,7 +20,9 @@ const krpano = ref<any>(null);
 const panoRef = ref<any>(null);
 
 onMounted(() => {
+  console.log(">>>>>");
   if (sceneConfig.value?.multires) {
+    console.log("<<<<<<<<<");
     init(sceneConfig.value);
   }
 });
@@ -48,6 +51,9 @@ const init = (config) => {
           setFovPano(newPano);
         }
       } else if (props.type === "preview") {
+        if (!previewPano.value) {
+          newPano.call("skin_setup_littleplanetintro");
+        }
         setPreviewPano(newPano);
       }
     },
@@ -62,12 +68,13 @@ const clearPano = (newPano, config?: any) => {
   let view = useXml("fov", config, props.type);
   let xmlstring = `<krpano>
       <include url="./plugins/specialEffect.xml" />
-      
-  	 ${props.type === "main" ? `<include url="./plugins/drag.xml" />` : ""} 
-     ${view} 
+
+  	 ${props.type === "main" ? `<include url="./plugins/drag.xml" />` : ""}
+     ${view}
      ${preview}
-    
+
      </krpano>`;
+  console.log(xmlstring);
   newPano.call(
     "loadxml(" + escape(xmlstring) + ", null, REMOVESCENES, BLEND(0.5));"
   );

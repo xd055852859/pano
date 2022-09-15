@@ -8,6 +8,8 @@ import { PanoConfig } from "@/interface/pano";
 import router from "@/router";
 
 import { controlStore } from "./control";
+import { ElMessage } from "element-plus";
+import useCheckUsed from "@/hooks/useCheckUsed";
 
 // 使用setup模式定义
 export const panoStore = defineStore("panoStore", () => {
@@ -49,10 +51,14 @@ export const panoStore = defineStore("panoStore", () => {
           ...obj,
         };
       });
-      if (infoRes.data.sceneList[0].multires) {
+      if (
+        infoRes.data.sceneList &&
+        infoRes.data.sceneList[0] &&
+        infoRes.data.sceneList[0].multires
+      ) {
         sceneObj.value = newSceneObj;
         sceneList.value = Object.values(newSceneObj);
-        if (!type) {
+        if (type !== "preview") {
           sceneKey.value = infoRes.data.sceneList[0]._key;
         }
       }
@@ -66,6 +72,7 @@ export const panoStore = defineStore("panoStore", () => {
         config: infoRes.data.config,
         sandTable: infoRes.data.sandTable,
         _key: infoRes.data._key,
+        littleplanet:infoRes.data.littleplanet
       };
     }
   };
@@ -98,38 +105,40 @@ export const panoStore = defineStore("panoStore", () => {
         viewPoints: infoRes.data.viewPoints,
         cover: `${api.File_URL}${infoRes.data.cover}`,
       });
-      if (infoRes.data.hotspots) {
-        let obj: any = {};
-        infoRes.data.hotspots.forEach((item) => {
-          obj[item.name] = { ...item, state: "used" };
-        });
-        controlStore().setHotspotObj({ ...obj });
-      } else {
-        controlStore().setHotspotObj({});
-      }
-      if (infoRes.data.layers) {
-        let obj: any = {};
-        infoRes.data.layers.forEach((item) => {
-          obj[item.name] = { ...item, state: "used" };
-        });
-        controlStore().setLayerObj({ ...obj });
-      } else {
-        controlStore().setLayerObj({});
-      }
-      if (infoRes.data.viewPoints) {
-        let arr: any = [];
-        infoRes.data.viewPoints.forEach((item) => {
-          arr.push({ ...item, state: "used" });
-        });
-        controlStore().setViewPointArray([...arr]);
-      } else {
-        controlStore().setViewPointArray([]);
-      }
+      formatScene(infoRes.data);
+    }
+  };
+  const formatScene = (data) => {
+    if (data.hotspots) {
+      let obj: any = {};
+      data.hotspots.forEach((item) => {
+        obj[item.name] = { ...item, state: "used" };
+      });
+      controlStore().setHotspotObj({ ...obj });
+    } else {
+      controlStore().setHotspotObj({});
+    }
+    if (data.layers) {
+      let obj: any = {};
+      data.layers.forEach((item) => {
+        obj[item.name] = { ...item, state: "used" };
+      });
+      controlStore().setLayerObj({ ...obj });
+    } else {
+      controlStore().setLayerObj({});
+    }
+    if (data.viewPoints) {
+      let arr: any = [];
+      data.viewPoints.forEach((item) => {
+        arr.push({ ...item, state: "used" });
+      });
+      controlStore().setViewPointArray([...arr]);
+    } else {
+      controlStore().setViewPointArray([]);
     }
   };
   const setSceneConfig = (newSceneObj: any) => {
-    console.log("????", newSceneObj);
-    if (newSceneObj.multires) {
+    if (newSceneObj) {
       if (newSceneObj._key === sceneConfig.value?._key) {
         sceneConfig.value = { ...sceneConfig.value, ...newSceneObj };
       } else {
@@ -192,6 +201,93 @@ export const panoStore = defineStore("panoStore", () => {
     hotspotName.value = "";
     sceneObj.value = null;
   };
+  const savePano = async (type?: string) => {
+    let savePanoRes: any = null;
+    let saveSceneRes: any = null;
+    let hotspot: any = [];
+    let layer: any = [];
+    let viewPoints: any = [];
+    let state = false;
+    let checkState = false;
+    if (panoConfig.value && sceneConfig.value) {
+      let panoObj = {
+        name: panoConfig.value.name,
+        tagKey: panoConfig.value.tagKey,
+        labels: panoConfig.value.labels,
+        public: panoConfig.value.public,
+        location: panoConfig.value.location,
+        config: panoConfig.value.config,
+        panoKey: panoConfig.value._key,
+        sandTable: panoConfig.value?.sandTable,
+        littleplanet: panoConfig.value?.littleplanet,
+        gyro: true,
+      };
+      savePanoRes = (await api.request.patch("pano", {
+        ...panoObj,
+      })) as ResultProps;
+      if (controlStore().hotspotObj) {
+        [state, hotspot] = useCheckUsed("obj", controlStore().hotspotObj);
+        if (state) {
+          checkState = true;
+        }
+      }
+      if (controlStore().layerObj) {
+        [state, layer] = useCheckUsed("obj", controlStore().layerObj);
+        if (state) {
+          checkState = true;
+        }
+      }
+      if (controlStore().viewPointArray) {
+        [state, viewPoints] = useCheckUsed(
+          "arr",
+          controlStore().viewPointArray
+        );
+        if (state) {
+          checkState = true;
+        }
+      }
+      if (checkState && type === "save") {
+        ElMessage({
+          message: "尚有控件或热点内容未保存",
+          type: "warning",
+          duration: 1000,
+        });
+      }
+      let sceneObj = {
+        sceneKey: sceneConfig.value._key,
+        viewAngle: sceneConfig.value.viewAngle,
+        // url: "", loop: false
+        BGM: sceneConfig.value?.BGM ? sceneConfig.value?.BGM : {},
+        specialEffect: sceneConfig.value?.specialEffect
+          ? sceneConfig.value?.specialEffect
+          : {},
+        hotspots: hotspot,
+        layers: layer,
+        ttsContent: sceneConfig.value?.ttsContent,
+        //{
+        //   sky: { scale: "1.0", url: "" },
+        //   ground: { scale: "1.0", url: "" },
+        // },
+        shade: sceneConfig.value?.shade ? sceneConfig.value?.shade : {},
+        viewPoints: viewPoints,
+      };
+
+      saveSceneRes = (await api.request.patch("scene", {
+        ...sceneObj,
+      })) as ResultProps;
+      if (savePanoRes.msg === "OK" && saveSceneRes.msg === "OK") {
+        if (type === "preview") {
+          router.push(`/preview/${panoConfig.value._key}/${sceneKey.value}`);
+        } else if (type === "save") {
+          ElMessage({
+            message: "保存成功",
+            type: "success",
+            duration: 1000,
+          });
+        }
+      }
+    }
+  };
   watch(sceneKey, (newKey) => {
     console.log(newKey);
     // if (sceneObj.value && sceneObj.value[newKey]?.multires) {
@@ -205,6 +301,7 @@ export const panoStore = defineStore("panoStore", () => {
         setSceneConfig({
           ...sceneObj.value[newKey],
         });
+        formatScene(sceneObj.value[newKey]);
       } else {
         console.log(newKey);
         getSceneInfo(newKey);
@@ -237,5 +334,6 @@ export const panoStore = defineStore("panoStore", () => {
     hotspotName,
     setHotspotName,
     clearPano,
+    savePano,
   };
 });

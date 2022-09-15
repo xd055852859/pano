@@ -10,7 +10,6 @@ export const commonStore = defineStore("commonStore", () => {
   const leftNum = ref<number>(0);
   const headerNum = ref<number>(0);
   const configNum = ref<string>("1");
-  const previewVisible = ref<boolean>(false);
   const createState = ref<boolean>(false);
   const createFile = ref<any>(null);
   const setLeftNum = (newLeftNum: number) => {
@@ -21,9 +20,6 @@ export const commonStore = defineStore("commonStore", () => {
   };
   const setConfigNum = (newConfigNum: string) => {
     configNum.value = newConfigNum;
-  };
-  const setPreviewVisible = (newPreviewVisible: boolean) => {
-    previewVisible.value = newPreviewVisible;
   };
   const setCreateState = (newCreateState: boolean) => {
     createState.value = newCreateState;
@@ -44,8 +40,6 @@ export const commonStore = defineStore("commonStore", () => {
     setHeaderNum,
     configNum,
     setConfigNum,
-    previewVisible,
-    setPreviewVisible,
     createState,
     setCreateState,
     createFile,

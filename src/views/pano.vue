@@ -78,7 +78,7 @@ const focusFov = async () => {
       <Layer v-if="headerNum === 4" />
       <Control v-if="headerNum === 5" />
     </div>
-    <div class="center">
+    <div class="center" v-if="sceneConfig?.multires">
       <CommonPano type="main" panoId="mainPano" />
     </div>
     <div
@@ -87,12 +87,7 @@ const focusFov = async () => {
     >
       <div class="pano-focus-img"><img :src="focusSvg" alt="" /></div>
       <div class="button">
-        <el-button
-          @click="focusFov"
-          type="success"
-          round
-          color="#86b93f"
-          style="color: #fff"
+        <el-button @click="focusFov" type="success" round
           >把当前视角视为初始视角</el-button
         >
       </div>

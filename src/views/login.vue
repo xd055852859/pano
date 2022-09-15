@@ -31,7 +31,7 @@ const login = () => {
       <div class="logo-title">时光全景</div>
     </div>
     <div class="logo-button dp-center-center">
-      <el-button @click="login" type="success" round color="#86b93f" style="color: #fff">登录</el-button>
+      <el-button @click="login" type="success" round>登录</el-button>
       <!-- <div class="welcome-bottom">https://qingdou.app</div> -->
     </div>
   </div>
