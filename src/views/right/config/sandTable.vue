@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ElMessage } from "element-plus";
-import CommonMap from "@/components/commonMap.vue";
+import CommonMap from "@/components/common/map.vue";
 import { storeToRefs } from "pinia";
 import appStore from "@/store";
 const { configNum } = storeToRefs(appStore.commonStore);

@@ -9,9 +9,7 @@ const percent = ref<number>(0);
 const barRef = ref<any>(null);
 const barleft = ref<number>(0);
 const progressRef = ref<any>(null);
-onMounted(() => {
-  percent.value = props.percent;
-});
+
 const moveProgress = (e) => {
   let event = e || window.event;
   // let leftVal = event.clientX - barRef.current.offsetLeft;
@@ -28,6 +26,13 @@ const moveProgress = (e) => {
   }
   emits("changePercent", percent.value);
 };
+watch(
+  () => props.percent,
+  (newPercent) => {
+    percent.value = newPercent;
+  },
+  { immediate: true }
+);
 </script>
 <template>
   <div

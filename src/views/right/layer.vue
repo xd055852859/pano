@@ -90,6 +90,7 @@ const saveLayer = () => {
         duration: 1000,
       });
     }
+    setHeaderNum(2);
     setLayerConfig({ name: layerConfig.value.name, state: "used" });
   } else if (viewPointConfig.value && hotspotIndex.value === 8) {
     ElMessage({
@@ -97,7 +98,6 @@ const saveLayer = () => {
       type: "success",
       duration: 1000,
     });
-    setViewPointConfig(null);
     setHeaderNum(2);
     setViewPointConfig({ name: viewPointConfig.value.name, state: "used" });
   }
@@ -120,8 +120,6 @@ const rotateLayer = (type, step) => {
         pano.value.set(`hotspot[${layerConfig.value.name}].rz`, num);
     }
   }, 100);
-  switch (type) {
-  }
 };
 const stopRotateLayer = (type) => {
   clearInterval(interval.value);
@@ -318,42 +316,42 @@ watch(
               @mousedown="rotateLayer('ry', 1)"
               @mouseup="stopRotateLayer('ry')"
             >
-              向前
+              <iconpark-icon name="rotate1" :size="30" />
             </div>
             <div
               type="success"
               @mousedown="rotateLayer('ry', -1)"
               @mouseup="stopRotateLayer('ry')"
             >
-              向后
+              <iconpark-icon name="rotate2" :size="30" />
             </div>
             <div
               type="success"
               @mousedown="rotateLayer('rx', 1)"
               @mouseup="stopRotateLayer('rx')"
             >
-              向上
+              <iconpark-icon name="rotate3" :size="30" />
             </div>
             <div
               type="success"
               @mousedown="rotateLayer('rx', -1)"
               @mouseup="stopRotateLayer('rx')"
             >
-              向下
+              <iconpark-icon name="rotate4" :size="30" />
             </div>
             <div
               type="success"
               @mousedown="rotateLayer('rz', 1)"
               @mouseup="stopRotateLayer('rz')"
             >
-              向左
+              <iconpark-icon name="rotate5" :size="30" />
             </div>
             <div
               type="success"
               @mousedown="rotateLayer('rz', -1)"
               @mouseup="stopRotateLayer('rz')"
             >
-              向右
+              <iconpark-icon name="rotate6" :size="30" />
             </div>
           </div>
         </div>

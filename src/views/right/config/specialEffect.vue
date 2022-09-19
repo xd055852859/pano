@@ -16,6 +16,21 @@ const skyPercent = ref<number>(50);
 const skyScale = ref<string>("1.0");
 const groundPercent = ref<number>(50);
 const groundScale = ref<string>("1.0");
+const imageList = ref<any>([]);
+onMounted(() => {
+  getImage();
+});
+const getImage = async () => {
+  const imageRes = (await api.request.get("media", {
+    type: "image",
+    page: 1,
+    limit: 500,
+  })) as ResultProps;
+  if (imageRes.msg === "OK") {
+    console.log(imageRes.data);
+    imageList.value = [...imageRes.data];
+  }
+};
 const getSpecial = async () => {
   const specialRes = (await api.request.get("effect", {})) as ResultProps;
   if (specialRes.msg === "OK") {
@@ -120,7 +135,7 @@ const changeShade = (type, url) => {
   let obj = { ...sceneConfig.value?.shade };
   obj = {
     ...obj,
-    [type]: { scale: "1.0", url: url },
+    [type]: { ...[type], url: url },
   };
   if (url) {
     addShade(url, type);
@@ -164,15 +179,23 @@ watch(
   configNum,
   (newNum) => {
     console.log(newNum);
-    if (newNum === "4") {
+    if (newNum === "3") {
       getSpecial();
-      console.log(sceneConfig.value?.shade);
       if (sceneConfig.value?.shade) {
         if (sceneConfig.value?.shade?.sky?.url) {
-          addShade(sceneConfig.value?.shade?.sky?.url, "sky");
+          addShade(sceneConfig.value.shade.sky.url, "sky");
+          skyUrl.value = sceneConfig.value.shade.sky.url;
+          let scale = sceneConfig.value.shade.sky.scale;
+          console.log(+scale * 50);
+          skyPercent.value = +scale * 50;
+          skyScale.value = scale;
         }
         if (sceneConfig.value?.shade?.ground?.url) {
-          addShade(sceneConfig.value?.shade?.sky?.url, "ground");
+          addShade(sceneConfig.value?.shade?.ground?.url, "ground");
+          groundUrl.value = sceneConfig.value.shade.ground.url;
+          let scale = sceneConfig.value.shade.ground.scale;
+          groundPercent.value = +scale * 50;
+          groundScale.value = scale;
         }
       }
     } else {
@@ -211,9 +234,10 @@ watch(
       >
         <el-option :key="''" :label="'无'" :value="''" />
         <el-option
-          :key="'https://cdn-icare.qingtime.cn/湖广填四川.jpg'"
-          :label="'天空'"
-          :value="'https://cdn-icare.qingtime.cn/湖广填四川.jpg'"
+          v-for="item in imageList"
+          :key="item.url"
+          :label="item.name"
+          :value="item.url"
         />
       </el-select>
     </div>
@@ -236,9 +260,10 @@ watch(
       >
         <el-option :key="''" :label="'无'" :value="''" />
         <el-option
-          :key="'https://cdn-icare.qingtime.cn/永嘉之乱.jpg'"
-          :label="'地面'"
-          :value="'https://cdn-icare.qingtime.cn/永嘉之乱.jpg'"
+          v-for="item in imageList"
+          :key="item.url"
+          :label="item.name"
+          :value="item.url"
         />
       </el-select>
     </div>

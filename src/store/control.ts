@@ -1,6 +1,6 @@
 import { ref } from "vue";
 import { defineStore } from "pinia";
-
+import { panoStore } from "./pano";
 // 使用setup模式定义
 export const controlStore = defineStore("controlStore", () => {
   const hotspotConfig = ref<any>(null);
@@ -10,7 +10,6 @@ export const controlStore = defineStore("controlStore", () => {
   const viewPointConfig = ref<any>(null);
   const viewPointArray = ref<any>(null);
   const setHotspotConfig = (newHotspotConfig: any) => {
-    console.log("???", newHotspotConfig);
     if (newHotspotConfig) {
       hotspotConfig.value = { ...hotspotConfig.value, ...newHotspotConfig };
       if (!hotspotObj.value) {
@@ -79,7 +78,18 @@ export const controlStore = defineStore("controlStore", () => {
   const setViewPointArray = (newViewPointsArray: any) => {
     viewPointArray.value = newViewPointsArray;
   };
+  // watch([hotspotObj,layerObj,viewPointConfig],([newHotspotObj,newLayerObj,newViewPointConfig])=>{
+  //   panoStore().setSceneObj({
+  //     ...panoStore().sceneObj,
+  //     [panoStore().sceneObj[panoStore().sceneKey]]:{
+  //       ...panoStore().sceneObj[panoStore().sceneKey],
+  //       hotspots: Object.values(newHotspotObj.value),
+  //       layers: Object.values(newHotspotObj.value),
+  //       viewPoints: Object.values(newHotspotObj.value),
+  //     }
 
+  //   });
+  // })
   return {
     hotspotConfig,
     setHotspotConfig,

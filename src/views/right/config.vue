@@ -32,9 +32,9 @@ watch(
       "
     >
       <el-tab-pane label="初始视角" name="1"><ViewAngle /></el-tab-pane>
-      <el-tab-pane label="沙盘位置" name="2"><SandTable /></el-tab-pane>
-      <el-tab-pane label="背景音乐" name="3"><Bgm /></el-tab-pane>
-      <el-tab-pane label="页面特效" name="4"><SpecialEffect /></el-tab-pane>
+      <!-- <el-tab-pane label="沙盘位置" name="2"><SandTable /></el-tab-pane> -->
+      <el-tab-pane label="背景音乐" name="2"><Bgm /></el-tab-pane>
+      <el-tab-pane label="页面特效" name="3"><SpecialEffect /></el-tab-pane>
     </el-tabs>
   </div>
 </template>

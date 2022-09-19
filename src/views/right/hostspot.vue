@@ -186,6 +186,11 @@ const changeHotspot = (type, value, oType?: string, ovalue?: string) => {
     videoUrl.value = videoUrl.value !== value ? value : "";
   } else if (hotspotIndex.value === 5) {
     mediaUrl.value = mediaUrl.value !== value ? value : "";
+  } else if (hotspotIndex.value === 1) {
+    value =
+      value.includes("https://") || value.includes("http://")
+        ? value
+        : "http://" + value;
   }
   setHotspotConfig({ [type]: value, name: hotspotConfig.value.name });
   if (oType) {
@@ -218,13 +223,15 @@ const updateMedia = (file, type) => {
       })) as ResultProps;
       if (createRes.msg === "OK") {
         ElMessage({
-          message: `上传${type === "audio" ? "音频" : "视频"}成功`,
+          message: `上传${
+            type === "image" ? "图片" : type === "audio" ? "音频" : "视频"
+          }成功`,
           type: "success",
           duration: 1000,
         });
         if (type === "audio") {
           musicList.value.push(createRes.data);
-        } else {
+        } else if (type === "video") {
           videoList.value.push(createRes.data);
         }
       }
@@ -272,13 +279,13 @@ const saveHotspot = () => {
         str = hotspotConfig.value.imageList.length === 0 ? "请上传图片" : "";
         break;
       case "openVideo":
-        str = hotspotConfig.value.linkUrl ? "" : "请上传视频";
+        str = hotspotConfig.value.linkUrl ? "" : "请选择视频";
         break;
       case "openText":
         str = hotspotConfig.value.text ? "" : "请输入文本内容";
         break;
       case "openAudio":
-        str = hotspotConfig.value.mediaUrl ? "" : "请上传音频";
+        str = hotspotConfig.value.mediaUrl ? "" : "请选择音频";
         break;
     }
     if (str) {
@@ -307,8 +314,9 @@ const delHotspot = () => {
     pano.value.call(`removelayer(${hotspotConfig.value.name}text)`);
   }
   delete obj[hotspotConfig.value.name];
+  console.log(obj);
   setHotspotObj({ ...obj });
-  setHotspotConfig(null);
+  // setHotspotConfig(null);
   setHeaderNum(2);
 };
 watch(
@@ -660,7 +668,7 @@ watch(hotspotIndex, () => {});
       </div>
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="deleteVisible = false">取消</el-button>
+          <el-button @click="deleteMediaVisible = false">取消</el-button>
           <el-button type="success" @click="deleteMedia()">确认</el-button>
         </span>
       </template>

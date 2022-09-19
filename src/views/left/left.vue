@@ -69,15 +69,15 @@ const uploadSceneImg = async (file) => {
     });
     return;
   }
-  let regExp = /[\u4E00-\u9FA5\uF900-\uFA2D]{1,}/;
-  if (regExp.test(file.name)) {
-    ElMessage({
-      message: "文件名请勿使用中文",
-      type: "warning",
-      duration: 3000,
-    });
-    return;
-  }
+  // let regExp = /[\u4E00-\u9FA5\uF900-\uFA2D]{1,}/;
+  // if (regExp.test(file.name)) {
+  //   ElMessage({
+  //     message: "文件名请勿使用中文",
+  //     type: "warning",
+  //     duration: 3000,
+  //   });
+  //   return;
+  // }
   let url = window.URL || window.webkitURL;
   console.log(url.createObjectURL(file)); //this.files[0]为选中的文件(索引为0因为是单选一个),这里是图片
   let img = new Image(); //手动创建一个Image对象
@@ -86,9 +86,16 @@ const uploadSceneImg = async (file) => {
     if (panoConfig.value) {
       if (img.width / img.height === 2) {
         const formData = new FormData();
-
+        let arr = file.name.split(".");
+        let newFile = new File(
+          [file],
+          `pano${new Date().getTime()}.${arr[arr.length - 1]}`,
+          {
+            type: file.type,
+          }
+        );
         // 遍历当前临时文件List,将上传文件添加到FormData对象中
-        formData.append("images", file);
+        formData.append("images", newFile);
         formData.append("panoKey", panoConfig.value?._key);
         ElMessage({
           message: "生成场景中...",
@@ -231,7 +238,6 @@ const saveName = async () => {
           <div
             class="screen-bottom single-to-long"
             @click="
-              $event.stopPropagation();
               nameVisible = true;
               nameInput = element.name;
             "

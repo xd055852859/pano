@@ -3,9 +3,13 @@ import { ResultProps } from "@/interface/Common";
 import { PanoTag } from "@/interface/Pano";
 import api from "@/services/api";
 import appStore from "@/store";
+import { ArrowRight } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
 import { storeToRefs } from "pinia";
-const { sceneObj, sceneKey, panoConfig } = storeToRefs(appStore.panoStore);
+import CommonMap from "@/components/common/map.vue";
+const { sceneObj, sceneKey, panoConfig, sceneList } = storeToRefs(
+  appStore.panoStore
+);
 const { setPanoConfig } = appStore.panoStore;
 const labelsInput = ref<string>("");
 const sandType = ref<number>(0);
@@ -15,7 +19,11 @@ const panoTypeKey = ref<string>("");
 const name = ref<string>("");
 const typeName = ref<string>("");
 const blend = ref<string>("");
+const mapVisible = ref<boolean>(false);
 const panoTypeArray = ref<PanoTag[]>([]);
+const locationArray = ref<any>([]);
+const targetScene = ref<any>(null);
+const sandTableRef = ref<any>(null);
 const changeTypeArray = [
   {
     label: "淡入淡出",
@@ -93,6 +101,30 @@ const changeConfig = (type, value, newType?: string) => {
     });
   }
 };
+const handleClose = (done) => {
+  let [position, keyArr, zoom, center] = sandTableRef.value.getLocation();
+  let location: any = {
+    zoom: zoom,
+    center: center,
+  };
+  keyArr.forEach((keyItem, keyIndex) => {
+    let index = sceneList.value.findIndex((item) => item._key === keyItem);
+    if (index !== -1) {
+      location[keyItem] = {
+        name: sceneList.value[index].name,
+        _key: keyItem,
+        position: position[keyIndex],
+      };
+    }
+  });
+  console.log(location);
+  //@ts-ignore
+  setPanoConfig({
+    ...panoConfig.value,
+    sandTable: { ...location },
+  });
+  done();
+};
 watch(
   panoConfig,
   (newConfig, oldConfig) => {
@@ -101,9 +133,34 @@ watch(
       panoTypeKey.value = newConfig?.tagKey ? newConfig.tagKey : "";
       name.value = newConfig.name;
       blend.value = newConfig.config?.blend ? newConfig.config.blend : "";
-      littleplanet.value = newConfig.config?.littleplanet
-        ? newConfig.config.littleplanet
+      littleplanet.value = newConfig?.littleplanet
+        ? newConfig.littleplanet
         : false;
+    }
+  },
+  { immediate: true }
+);
+watch(
+  sceneList,
+  (newList, oldList) => {
+    if (newList && !oldList) {
+      targetScene.value = newList[0];
+    }
+  },
+  { immediate: true }
+);
+watch(
+  panoConfig,
+  (newConfig) => {
+    if (newConfig?.sandTable) {
+      console.log(newConfig?.sandTable);
+      locationArray.value = [];
+      for (let key in newConfig?.sandTable) {
+        if (key !== "center" && key !== "zoom") {
+          console.log(key);
+          locationArray.value.push(newConfig.sandTable[key]);
+        }
+      }
     }
   },
   { immediate: true }
@@ -169,18 +226,65 @@ watch(
         />
       </el-select>
     </div>
+    <div class="pano-item">
+      <div
+        class="pano-item-title"
+        style="width: 100%; cursor: pointer"
+        @click="mapVisible = true"
+      >
+        <div>沙盘</div>
+        <div>
+          <el-icon><ArrowRight /></el-icon>
+        </div>
+      </div>
+    </div>
     <el-checkbox
       v-model="littleplanet"
       label="小行星开场"
       size="large"
       @change="changeConfig('littleplanet', littleplanet)"
     />
+    <el-dialog
+      v-model="mapVisible"
+      title="沙盘地图"
+      width="80vw"
+      top="8vh"
+      :before-close="handleClose"
+    >
+      <div class="map-container">
+        <div class="map-left" v-if="targetScene">
+          <CommonMap
+            :mapId="'sandTableMap'"
+            :width="'100%'"
+            :height="'100%'"
+            :data="locationArray"
+            :zoom="panoConfig?.sandTable?.zoom"
+            :center="panoConfig?.sandTable?.center"
+            :targetScene="targetScene"
+            type="sandTable"
+            ref="sandTableRef"
+          />
+        </div>
+        <div class="map-right">
+          <div
+            v-for="(item, index) in sceneList"
+            :key="`map${index}`"
+            class="map-right-item single-to-long"
+            :style="
+              targetScene && targetScene._key === item._key
+                ? { background: '#efefef' }
+                : ''
+            "
+            @click="targetScene = item"
+          >
+            {{ item.name }}
+          </div>
+        </div>
+      </div>
+    </el-dialog>
     <!-- 
 
-    <div class="pano-item">
-      <div class="pano-item-title" style="width: 100%">朗读人</div>
-      <div class="pano-item-box"></div>
-    </div>
+    
     <div class="pano-item">
       <div class="pano-item-title">巡航时间</div>
       <div>
@@ -191,11 +295,7 @@ watch(
         />秒
       </div>
     </div>
-
-    <div>
-      <div>设置位置</div>
-      <div></div>
-    </div> -->
+ -->
   </div>
 </template>
 <style scoped lang="scss">
@@ -211,6 +311,27 @@ watch(
       height: 280px;
       img {
         @include img-fit(cover);
+      }
+    }
+  }
+  .map-container {
+    width: 80vw;
+    height: 80vh;
+    @include flex(space-between, center, null);
+    .map-left {
+      width: calc(100% - 210px);
+      height: 100%;
+    }
+    .map-right {
+      width: 200px;
+      height: 100%;
+      @include scroll();
+      .map-right-item {
+        width: 100%;
+        height: 40px;
+        line-height: 40px;
+        cursor: pointer;
+        @include p-number(10px);
       }
     }
   }

@@ -8,6 +8,7 @@ import { ResultProps } from "@/interface/Common";
 import useClipboard from "vue-clipboard3";
 import router from "@/router";
 import useCheckUsed from "@/hooks/useCheckUsed";
+import Share from "./common/share.vue";
 const { toClipboard } = useClipboard();
 const { setLeftNum, setHeaderNum } = appStore.commonStore;
 const { headerNum } = storeToRefs(appStore.commonStore);
@@ -26,7 +27,8 @@ const {
 const { savePano } = appStore.panoStore;
 
 const activeIndex = ref("1");
-
+const shareVisible = ref<boolean>(false);
+const shareUrl = ref<string>("");
 onMounted(() => {
   window.addEventListener("setItemEvent", function (e: any) {
     console.log(e.key);
@@ -372,15 +374,9 @@ const createLayer = (index: number) => {
   }
 };
 
-const sharePano = () => {
-  toClipboard(
-    `${window.location.protocol}//${window.location.host}/#/preview/${panoConfig.value?._key}/${sceneKey.value}`
-  );
-  ElMessage({
-    message: "复制链接成功",
-    type: "success",
-    duration: 1000,
-  });
+const sharePano = (item) => {
+  shareVisible.value = true;
+  shareUrl.value = `${window.location.protocol}//${window.location.host}/#/preview/${panoConfig.value?._key}/${sceneKey.value}`;
 };
 watch(headerNum, (newNum, oldNum) => {
   console.log(newNum);
@@ -471,13 +467,16 @@ watch(headerNum, (newNum, oldNum) => {
           style="margin-right: 2px"
         />预览
       </div>
-      <div @click="savePano('save')">   
+      <div @click="savePano('save')">
         <iconpark-icon name="save" :size="24" style="margin-right: 2px" />保存
       </div>
       <div @click="sharePano">
         <iconpark-icon name="share" :size="24" />分享
       </div>
     </div>
+    <el-dialog v-model="shareVisible" title="分享" :width="'550px'">
+      <Share :url="shareUrl" />
+    </el-dialog>
   </div>
 </template>
 <style scoped lang="scss">
@@ -525,6 +524,7 @@ watch(headerNum, (newNum, oldNum) => {
     width: 235px;
     @include flex(flex-end, center, null);
     > div {
+      cursor: pointer;
       @include flex(center, center, null);
       margin-right: 12px;
     }
@@ -544,6 +544,13 @@ watch(headerNum, (newNum, oldNum) => {
     }
     .is-active {
       background-color: transparent;
+    }
+  }
+}
+.pano-editor {
+  .pano-editor-header {
+    .el-dialog__body {
+      padding: 15px;
     }
   }
 }

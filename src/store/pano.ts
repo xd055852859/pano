@@ -57,7 +57,13 @@ export const panoStore = defineStore("panoStore", () => {
         infoRes.data.sceneList[0].multires
       ) {
         sceneObj.value = newSceneObj;
-        sceneList.value = Object.values(newSceneObj);
+        sceneList.value = infoRes.data.sceneList.map((item) => {
+          if (newSceneObj[item._key]) {
+            item = newSceneObj[item._key];
+          }
+          return item;
+        });
+        console.log(sceneList.value);
         if (type !== "preview") {
           sceneKey.value = infoRes.data.sceneList[0]._key;
         }
@@ -72,7 +78,7 @@ export const panoStore = defineStore("panoStore", () => {
         config: infoRes.data.config,
         sandTable: infoRes.data.sandTable,
         _key: infoRes.data._key,
-        littleplanet:infoRes.data.littleplanet
+        littleplanet: infoRes.data.littleplanet,
       };
     }
   };
@@ -84,6 +90,7 @@ export const panoStore = defineStore("panoStore", () => {
     sceneKey.value = newSceneKey;
   };
   const getSceneInfo = async (key) => {
+    sceneKey.value = key;
     const infoRes = (await api.request.get("scene/detail", {
       sceneKey: key,
     })) as ResultProps;
@@ -154,8 +161,20 @@ export const panoStore = defineStore("panoStore", () => {
         ...sceneObj.value[newSceneObj._key],
         ...newSceneObj,
       };
-      console.log(sceneObj.value);
-      sceneList.value = Object.values(sceneObj.value);
+      for (let key in sceneObj.value) {
+        let value = sceneObj.value[key];
+        if (!sceneList.value) {
+          sceneList.value = [];
+        }
+        let index = sceneList.value.findIndex(
+          (item) => item._key === value._key
+        );
+        if (index === -1) {
+          sceneList.value.push(value);
+        } else {
+          sceneList.value[index] = value;
+        }
+      }
     }
   };
   const setSceneObj = (newSceneObj: any) => {
@@ -292,20 +311,19 @@ export const panoStore = defineStore("panoStore", () => {
     console.log(newKey);
     // if (sceneObj.value && sceneObj.value[newKey]?.multires) {
     if (newKey) {
-      console.log(newKey);
-      if (
-        sceneObj.value &&
-        sceneObj.value[newKey] &&
-        sceneObj.value[newKey]?.multires
-      ) {
-        setSceneConfig({
-          ...sceneObj.value[newKey],
-        });
-        formatScene(sceneObj.value[newKey]);
-      } else {
-        console.log(newKey);
-        getSceneInfo(newKey);
-      }
+      // if (
+      //   sceneObj.value &&
+      //   sceneObj.value[newKey] &&
+      //   sceneObj.value[newKey]?.multires
+      // ) {
+      //   setSceneConfig({
+      //     ...sceneObj.value[newKey],
+      //   });
+      //   formatScene(sceneObj.value[newKey]);
+      // } else {
+      //   console.log(newKey);
+      getSceneInfo(newKey);
+      // }
     }
     // }
   });
@@ -323,6 +341,7 @@ export const panoStore = defineStore("panoStore", () => {
     setSceneKey,
     sceneConfig,
     setSceneConfig,
+    getSceneInfo,
     sceneList,
     setSceneList,
     sceneObj,

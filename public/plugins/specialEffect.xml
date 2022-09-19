@@ -25,6 +25,7 @@
 		set(plugin[special].invert,        false);
 		set(plugin[special].floor,         0.7);
 	</action>
+	<plugin name="webvr" devices="html5" keep="true" url="webvr.js" postracking="auto" oversampling="1.0" fullscreen_mirroring="false" mouse_pointerlock="true" webvr_highrefreshrate="" webvr_foveationlevel="1" webvr_ca_correction="" mobilevr_support="true" mobilevr_fake_support="true" mobilevr_touch_support="false" mobilevr_profile="80|60|42|35|0.441|0.156" mobilevr_screensize="auto" mobilevr_database_support="xml|internal|external" mobilevr_database_url="https://dpdb.webvr.rocks/dpdb.json" flatpanohfov="120.0" vr_cursor="" vr_cursor_enabled="true" vr_cursor_onover="" vr_cursor_onout="" vr_controller_support="true" vr_controller="" vr_controller_clickbuttons="0,1" onavailable="" onunavailable="" onunknowndevice="" onvrcontrollers="" onvrcontrollerbutton="" onhavepostracking="" onentervr="" onexitvr="" ondenied="" />
 	<action name="getHotspotName">  
         jscall('localStorage.setItem("targetspotName","%1");')
 	</action>
@@ -36,7 +37,7 @@
 	</action>
 
 	<style name="textStyle" font="Arial" fontsize.no-mobile="18" fontsize.mobile="28" bold="true" background="true" backgroundcolor="0x333300" backgroundalpha="0.667" border="true" borderwidth="2" bordercolor="0xFFFFFF" roundedge="10" textcolor="0xFFFFFF" padding="6 10" textalign="center" yoffset.no-touch="-5" yoffset.touch="-40" />
-	
+
 	<action name="skin_setup_littleplanetintro" scope="local">
 		<!-- skin_hideskin(instant); -->
             set_hotspot_visible(false);
@@ -52,12 +53,12 @@
                 tween(view.hlookat|view.vlookat|view.fov|view.distortion, calc('' + lpinfo.hlookat + '|' + lpinfo.vlookat + '|' + lpinfo.fov + '|' + 0.0), 3.0, easeOutQuad);
                 delayedcall(3.0,
                     set(control.usercontrol, all);
-                    		<!-- skin_update_bouncinglimits_control(); -->
+                    				<!-- skin_update_bouncinglimits_control(); -->
                     tween(view.fovmax, get(lpinfo.fovmax));
-                    		<!-- skin_deeplinking_update_url(); -->
+                    				<!-- skin_deeplinking_update_url(); -->
                     delete(global.lpinfo);
                     set_hotspot_visible(true);
-                    		<!-- skin_showskin(); -->
+                    				<!-- skin_showskin(); -->
                     if(skin_settings.thumbs AND skin_settings.thumbs_opened, skin_showthumbs() );
                 );
                 ,

@@ -3,7 +3,7 @@ import { ElMessage } from "element-plus";
 import appStore from "@/store";
 import { storeToRefs } from "pinia";
 import SliderProgress from "@/components/common/sliderProgress.vue";
-import CommonPano from "@/components/commonPano.vue";
+import CommonPano from "@/components/common/pano.vue";
 const { pano, sceneConfig } = storeToRefs(appStore.panoStore);
 const { setSceneConfig } = appStore.panoStore;
 const fov = ref<number>(95);

@@ -13,7 +13,7 @@ import api from "@/services/api";
 import { ResultProps } from "@/interface/Common";
 
 import focusSvg from "@/assets/svg/focus.svg";
-import CommonPano from "@/components/commonPano.vue";
+import CommonPano from "@/components/common/pano.vue";
 import Control from "./right/control.vue";
 const route = useRoute();
 
