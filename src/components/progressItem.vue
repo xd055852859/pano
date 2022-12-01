@@ -12,12 +12,9 @@ const progressRef = ref<any>(null);
 
 const moveProgress = (e) => {
   let event = e || window.event;
-  // let leftVal = event.clientX - barRef.current.offsetLeft;
   let left = progressRef.value.getBoundingClientRect().left;
   const width = progressRef.value.getBoundingClientRect().width;
   barleft.value = event.clientX - left;
-  // barRef.current.style.left = barleft.value + "px";
-  // console.log(barleft.value);
   percent.value = Math.round((barleft.value / width) * 100);
   if (percent.value > 100) {
     percent.value = 100;

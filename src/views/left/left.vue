@@ -79,13 +79,21 @@ const uploadSceneImg = async (file) => {
   //   return;
   // }
   let url = window.URL || window.webkitURL;
-  console.log(url.createObjectURL(file)); //this.files[0]为选中的文件(索引为0因为是单选一个),这里是图片
   let img = new Image(); //手动创建一个Image对象
   img.src = url.createObjectURL(file); //创建Image的对象的url
   img.onload = async () => {
     if (panoConfig.value) {
       if (img.width / img.height === 2) {
         const formData = new FormData();
+        // let arr = file.name.split(".");
+        // let newFile = new File(
+        //   [file],
+        //   `pano${new Date().getTime()}.${arr[arr.length - 1]}`,
+        //   {
+        //     type: file.type,
+        //   }
+        // );
+        // 遍历当前临时文件List,将上传文件添加到FormData对象中
         let arr = file.name.split(".");
         let newFile = new File(
           [file],
@@ -94,8 +102,11 @@ const uploadSceneImg = async (file) => {
             type: file.type,
           }
         );
-        // 遍历当前临时文件List,将上传文件添加到FormData对象中
         formData.append("images", newFile);
+        formData.append(
+          "sceneName",
+          file.name.replace(`.${arr[arr.length - 1]}`,"")
+        );
         formData.append("panoKey", panoConfig.value?._key);
         ElMessage({
           message: "生成场景中...",
@@ -115,7 +126,6 @@ const uploadSceneImg = async (file) => {
             },
           }
         )) as ResultProps;
-        console.log(createRes.data);
         if (createRes.data.msg === "OK") {
           ElMessage({
             message: "创建场景成功",

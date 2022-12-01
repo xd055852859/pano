@@ -16,10 +16,6 @@ const ttsContent = ref<any>("");
 const bgmIndex = ref<number>(0);
 const deleteVisible = ref<boolean>(false);
 
-const uploadBgm = (e) => {
-  console.log(e);
-  musicFile.value = e.target.files[0];
-};
 onMounted(() => {
   getBgm();
 });
@@ -41,9 +37,8 @@ const getBgm = async () => {
 };
 const uploadMusic = (file) => {
   uploadFile(file, ["mp3"], async (url, name) => {
-    console.log(url);
     const createRes = (await api.request.post("media", {
-      name: musicFile.value.name,
+      name: file.name,
       url: url,
       type: "audio",
     })) as ResultProps;

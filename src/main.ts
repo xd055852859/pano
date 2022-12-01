@@ -15,7 +15,6 @@ import dispatchEventStroage from '@/services/tool'
 
 const app = createApp(App);
 app.provide("dayjs", dayjs);
-
 app
   .use(router)
   .use(ElementPlus, {

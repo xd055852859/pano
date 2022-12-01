@@ -1,0 +1,23 @@
+<krpano>
+    <action name="webvr_hide_all_layers" scope="local">
+		for(set(i,0), i LT layer.count, inc(i),
+			set(layer[get(i)].visible, false);
+			);
+		);
+    </action>
+    <action name="webvr_show_all_hotspots" scope="local">
+		for(set(i,0), i LT hotspot.count, inc(i),
+			set(hotspot[get(i)].visible, false);
+		);
+    </action>
+    <action name="webvr_restore_layers" scope="local">
+		for(set(i,0), i LT layer.count, inc(i),
+			set(layer[get(i)].visible, true);
+		);
+    </action>
+    <action name="webvr_restore_hotspots" scope="local">
+		for(set(i,0), i LT hotspot.count, inc(i),
+			set(layer[get(i)].visible, true);
+		);
+    </action>
+</krpano>

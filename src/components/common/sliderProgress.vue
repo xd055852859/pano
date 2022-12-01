@@ -25,9 +25,7 @@ const sliderProgressRef = ref<any>(null);
 const sliderLineRef = ref<any>(null);
 const targetType = ref<string>("");
 onMounted(() => {
-  console.log(step.value);
   const topVal = sliderProgressRef.value.offsetHeight / 2 - 10 + "px";
-
   leftBallRef.value.style.top = topVal;
   rightBallRef.value.style.top = topVal;
 
@@ -67,7 +65,6 @@ const moveball = (e) => {
   let leftVal =
     event.clientX - sliderProgressRef.value.getBoundingClientRect().left;
   if (targetType.value) {
-    console.log(targetType.value);
     switch (targetType.value) {
       case "left":
         let leftRightVal =

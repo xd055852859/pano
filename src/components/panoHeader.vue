@@ -12,7 +12,9 @@ import Share from "./common/share.vue";
 const { toClipboard } = useClipboard();
 const { setLeftNum, setHeaderNum } = appStore.commonStore;
 const { headerNum } = storeToRefs(appStore.commonStore);
-const { pano, panoConfig, sceneKey } = storeToRefs(appStore.panoStore);
+const { pano, panoConfig, sceneKey, sceneConfig } = storeToRefs(
+  appStore.panoStore
+);
 const { setHotspotIndex } = appStore.panoStore;
 const { hotspotObj, layerObj, viewPointArray } = storeToRefs(
   appStore.controlStore
@@ -31,7 +33,6 @@ const shareVisible = ref<boolean>(false);
 const shareUrl = ref<string>("");
 onMounted(() => {
   window.addEventListener("setItemEvent", function (e: any) {
-    console.log(e.key);
     if (e.key === "targetspotName" && e.newValue) {
       let index = 0;
       setHotspotConfig(hotspotObj.value[e.newValue]);
@@ -72,11 +73,9 @@ onMounted(() => {
           break;
         //click/loop
       }
-      console.log(index);
       setHotspotIndex(index);
       localStorage.removeItem("targetlayerName");
     } else if (e.key === "targetViewPointNumber" && e.newValue) {
-      console.log("targetViewPointNumber", e.newValue);
       setViewPointConfig(viewPointArray.value[e.newValue]);
       setHeaderNum(4);
       setHotspotIndex(8);
@@ -90,7 +89,6 @@ const getHotspot = () => {
   for (let key in hotspotObj.value) {
     let value = hotspotObj.value[key];
     let name = value.name;
-    console.log(name);
     pano.value.call(`addhotspot(${name})`);
     pano.value.set(`hotspot[${name}].url`, value.url);
     if (value.logoType === "gif") {
@@ -162,12 +160,10 @@ const getViewPoint = () => {
     pano.value.set(`hotspot[${name}].ath`, item.ath);
     pano.value.set(`hotspot[${name}].padding`, "8");
     pano.value.set(`hotspot[${name}].ondown`, "draghotspot()");
-    console.log(index);
     pano.value.set(`hotspot[${name}].onclick`, `getViewPointName(${index})`);
   });
 };
 const removeControl = (obj, type) => {
-  console.log(obj);
   if (obj) {
     let newObj = { ...obj };
     for (let key in newObj) {
@@ -380,15 +376,51 @@ const sharePano = (item) => {
 };
 watch(headerNum, (newNum, oldNum) => {
   console.log(newNum);
+  activeIndex.value = newNum + "";
   if (newNum === 0 || newNum === 1) {
     removeControl(hotspotObj.value, "hotspot");
     removeControl(layerObj.value, "layer");
+    // pano.value.call("webvr_hide_all_layers");
+    // pano.value.call("webvr_show_all_hotspots");
   } else if (oldNum === 0 || oldNum === 1) {
     getHotspot();
     getLayer();
     getViewPoint();
+    // pano.value.call("webvr_restore_layers");
+    // pano.value.call("webvr_restore_hotspots");
   }
 });
+watch(
+  [hotspotObj, layerObj, viewPointArray],
+  (
+    [newHotspotObj, newLayerObj, newViewPointArray],
+    [oldHotspotObj, oldLayerObj, oldViewPointArray]
+  ) => {
+    if (headerNum.value !== 0 && headerNum.value !== 1) {
+      if (newHotspotObj && !oldHotspotObj) {
+        getHotspot();
+      }
+      if (newLayerObj && !oldLayerObj) {
+        getLayer();
+      }
+      if (newViewPointArray && !oldViewPointArray) {
+        getViewPoint();
+      }
+    }
+  },
+  { immediate: true }
+);
+// watch(
+//   [sceneConfig,pano],
+//   (newConfig,newPano) => {
+//     if (newConfig&&newPano) {
+//       getHotspot();
+//       getLayer();
+//       getViewPoint();
+//     }
+//   },
+//   { immediate: true }
+// );
 </script>
 <template>
   <div class="pano-editor-header">
@@ -396,14 +428,12 @@ watch(headerNum, (newNum, oldNum) => {
       <el-icon :size="24" style="margin-right: 5px">
         <ArrowLeft />
       </el-icon>
-      {{ panoConfig?.name ? panoConfig?.name : "全景" }}
+      <div class="single-to-long" style="width: 145px">
+        {{ panoConfig?.name ? panoConfig?.name : "全景" }}
+      </div>
     </div>
     <div class="center">
-      <el-menu
-        :default-active="activeIndex"
-        mode="horizontal"
-        class="center-menu"
-      >
+      <el-menu :active="activeIndex" mode="horizontal" class="center-menu">
         <el-menu-item
           index="1"
           @click="
@@ -424,35 +454,87 @@ watch(headerNum, (newNum, oldNum) => {
             ></template
           >
           <el-sub-menu index="2-1">
-            <template #title>热点</template>
-            <el-menu-item index="2-4-1" @click="chooseHotspot(0)"
-              >全景切换</el-menu-item
+            <template #title
+              ><iconpark-icon
+                name="control1"
+                :size="20"
+                style="margin-right: 8px"
+                color="#333"
+              />热点</template
+            >
+            <el-menu-item index="2-4-1" @click="chooseHotspot(0)">
+              <iconpark-icon
+                name="hotspot1"
+                :size="20"
+                style="margin-right: 8px"
+                color="#333"
+              />全景切换</el-menu-item
             >
             <el-menu-item index="2-4-2" @click="chooseHotspot(1)"
-              >超链接</el-menu-item
+              ><iconpark-icon
+                name="hotspot2"
+                :size="20"
+                style="margin-right: 8px"
+                color="#333"
+              />超链接</el-menu-item
             >
             <el-menu-item index="2-4-3" @click="chooseHotspot(2)"
-              >图片热点</el-menu-item
+              ><iconpark-icon
+                name="hotspot3"
+                :size="20"
+                style="margin-right: 8px"
+                color="#333"
+              />图片热点</el-menu-item
             >
             <el-menu-item index="2-4-4" @click="chooseHotspot(3)"
-              >视频热点</el-menu-item
+              ><iconpark-icon
+                name="hotspot4"
+                :size="20"
+                style="margin-right: 8px"
+                color="#333"
+              />视频热点</el-menu-item
             >
             <el-menu-item index="2-4-5" @click="chooseHotspot(4)"
-              >文本热点</el-menu-item
+              ><iconpark-icon
+                name="hotspot5"
+                :size="20"
+                style="margin-right: 8px"
+                color="#333"
+              />文本热点</el-menu-item
             >
             <el-menu-item index="2-4-6" @click="chooseHotspot(5)"
-              >音频热点</el-menu-item
+              ><iconpark-icon
+                name="hotspot6"
+                :size="20"
+                style="margin-right: 8px"
+                color="#333"
+              />音频热点</el-menu-item
             >
           </el-sub-menu>
           <el-divider border-style="dashed" />
           <el-menu-item index="2-2" @click="chooseControl(6)"
-            >文字</el-menu-item
+            ><iconpark-icon
+              name="control2"
+              :size="20"
+              style="margin-right: 8px"
+              color="#333"
+            />文字</el-menu-item
           >
           <el-menu-item index="2-3" @click="chooseControl(7)"
-            >图片</el-menu-item
+            ><iconpark-icon
+              name="control3"
+              :size="20"
+              style="margin-right: 8px"
+              color="#333"
+            />图片</el-menu-item
           >
           <el-menu-item index="2-4" @click="chooseControl(8)"
-            >导航点</el-menu-item
+            ><iconpark-icon
+              name="control4"
+              :size="20"
+              style="margin-right: 8px"
+              color="#333"
+            />导航点</el-menu-item
           >
         </el-sub-menu>
         <el-menu-item index="3" @click="setHeaderNum(5)">控件</el-menu-item>

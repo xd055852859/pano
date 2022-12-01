@@ -51,7 +51,6 @@ export const controlStore = defineStore("controlStore", () => {
   };
   const setViewPointConfig = (newViewPointConfig: any) => {
     if (newViewPointConfig) {
-      console.log(newViewPointConfig);
       viewPointConfig.value = {
         ...viewPointConfig.value,
         ...newViewPointConfig,
@@ -62,7 +61,6 @@ export const controlStore = defineStore("controlStore", () => {
       let index = viewPointArray.value.findIndex(
         (item) => item.name === newViewPointConfig.name
       );
-      console.log(index);
       if (index !== -1) {
         viewPointArray.value[index] = {
           ...viewPointArray.value[index],

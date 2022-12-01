@@ -33,20 +33,28 @@ const changeText = (text) => {
   setLayerConfig({ text: text, name: layerConfig.value.name });
 };
 const changeLayer = (type, value) => {
+  if (type === "linkUrl") {
+    value =
+      value.includes("https://") || value.includes("http://")
+        ? value
+        : "http://" + value;
+  }
+  console.log(value)
   setLayerConfig({ [type]: value, name: layerConfig.value.name });
+};
+const changeViewPoint = (type, value) => {
+  setViewPointConfig({ [type]: value, name: viewPointConfig.value.name });
 };
 const changePercent = (percent) => {
   scale.value = (percent / 50).toFixed(1);
   pano.value.set(`hotspot[${layerConfig.value.name}].scale`, scale.value);
   setLayerConfig({ scale: scale.value, name: layerConfig.value.name });
-  console.log(scale.value);
 };
 const updateMedia = (file, type) => {
   let mimeType = ["image/*"];
 
   if (file) {
     uploadFile(file, mimeType, async (url, name) => {
-      console.log(url);
       if (type === "image") {
         imgList.value.push(url);
         changeLayer("imageList", imgList.value);
@@ -104,7 +112,6 @@ const saveLayer = () => {
 };
 const rotateLayer = (type, step) => {
   let num = type === "rx" ? rx.value : type === "ry" ? ry.value : rz.value;
-  console.log(num);
   //rx 上下 ry 前后 rz 左右
   interval.value = setInterval(() => {
     num = num + step;
@@ -129,7 +136,7 @@ const stopRotateLayer = (type) => {
     case "rx":
       setLayerConfig({ name: layerConfig.value.name, rx: rx.value });
     case "rz":
-      setLayerConfig({ name: layerConfig.value.name, rx: rz.value });
+      setLayerConfig({ name: layerConfig.value.name, rz: rz.value });
   }
 };
 const delLayer = () => {
@@ -152,7 +159,6 @@ const delLayer = () => {
       arr.splice(index, 1);
       arr.map((item, index) => {
         item.number = index + 1;
-        console.log(item.name, item.number);
         pano.value.set(`hotspot[${item.name}].html`, index + 1);
         pano.value.set(
           `hotspot[${item.name}].onclick`,
@@ -169,10 +175,10 @@ const delLayer = () => {
 watch(
   layerConfig,
   (newConfig, oldConfig) => {
-    console.log(newConfig?.name, oldConfig?.name);
     if (newConfig && newConfig?.name !== oldConfig?.name) {
       scale.value = newConfig.scale ? newConfig.scale : "1.0";
       percent.value = +scale.value * 50;
+
       switch (newConfig.type) {
         case "text":
           text.value = newConfig.text;
@@ -182,7 +188,7 @@ watch(
         //click/loop
         case "image":
           imgList.value = newConfig.imageList;
-          switchMode.value = newConfig.switchMode === "loop" ? 1 : 0;
+          switchMode.value = newConfig.switchMode === "loop" ? 0 : 1;
           imgTime.value = newConfig.interval;
           rx.value = newConfig.rx ? parseInt(newConfig.rx) : 0;
           ry.value = newConfig.ry ? parseInt(newConfig.ry) : 0;
@@ -196,8 +202,8 @@ watch(
 watch(
   viewPointConfig,
   (newConfig, oldConfig) => {
-    console.log(newConfig?.name, oldConfig?.name);
     if (newConfig && newConfig?.name !== oldConfig?.name) {
+      console.log(newConfig);
       scale.value = newConfig.scale ? newConfig.scale : "1.0";
       percent.value = +scale.value * 50;
       imgTime.value = newConfig.interval;
@@ -376,6 +382,7 @@ watch(
                 v-model="imgTime"
                 placeholder="请输入移动时间"
                 style="width: 80px; margin-right: 10px"
+                @change="(value) => changeViewPoint('interval', value)"
               />秒
             </div>
           </div>

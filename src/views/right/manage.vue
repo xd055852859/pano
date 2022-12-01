@@ -14,7 +14,8 @@ const { setPanoConfig } = appStore.panoStore;
 const labelsInput = ref<string>("");
 const sandType = ref<number>(0);
 const cruiseTime = ref<string>("");
-const littleplanet = ref<boolean>(false);
+const littleplanet = ref<boolean>(true);
+const vr = ref<boolean>(false);
 const panoTypeKey = ref<string>("");
 const name = ref<string>("");
 const typeName = ref<string>("");
@@ -117,7 +118,6 @@ const handleClose = (done) => {
       };
     }
   });
-  console.log(location);
   //@ts-ignore
   setPanoConfig({
     ...panoConfig.value,
@@ -128,14 +128,13 @@ const handleClose = (done) => {
 watch(
   panoConfig,
   (newConfig, oldConfig) => {
-    if (newConfig && (!oldConfig || oldConfig._key !== newConfig._key)) {
+    if (newConfig && !oldConfig) {
       labelsInput.value = newConfig?.labels ? newConfig.labels : "";
       panoTypeKey.value = newConfig?.tagKey ? newConfig.tagKey : "";
       name.value = newConfig.name;
       blend.value = newConfig.config?.blend ? newConfig.config.blend : "";
-      littleplanet.value = newConfig?.littleplanet
-        ? newConfig.littleplanet
-        : false;
+      vr.value = newConfig.vr ? newConfig.vr : false;
+      littleplanet.value = !!newConfig?.littleplanet;
     }
   },
   { immediate: true }
@@ -153,11 +152,9 @@ watch(
   panoConfig,
   (newConfig) => {
     if (newConfig?.sandTable) {
-      console.log(newConfig?.sandTable);
       locationArray.value = [];
       for (let key in newConfig?.sandTable) {
         if (key !== "center" && key !== "zoom") {
-          console.log(key);
           locationArray.value.push(newConfig.sandTable[key]);
         }
       }
@@ -238,12 +235,22 @@ watch(
         </div>
       </div>
     </div>
-    <el-checkbox
-      v-model="littleplanet"
-      label="小行星开场"
-      size="large"
-      @change="changeConfig('littleplanet', littleplanet)"
-    />
+    <div>
+      <el-checkbox
+        v-model="littleplanet"
+        label="小行星开场"
+        size="large"
+        @change="changeConfig('littleplanet', littleplanet)"
+      />
+    </div>
+    <div>
+      <el-checkbox
+        v-model="vr"
+        label="vr模式"
+        size="large"
+        @change="changeConfig('vr', vr)"
+      />
+    </div>
     <el-dialog
       v-model="mapVisible"
       title="沙盘地图"

@@ -5,10 +5,11 @@ export interface SceneConfig {
   userKey: string;
   xmlPath: string;
   multires: string;
+  cubeUrl: string;
   _key: string;
   viewAngle?: ViewAngle;
   BGM?: any;
-  specialEffect?: { mode: string; url?: string; _key: string };
+  specialEffect?: { mode: string; url?: string; _key: string; scale: string };
   shade?: any;
   ttsContent?: string;
   viewPoints?: any;

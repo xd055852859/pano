@@ -4,10 +4,15 @@ const useXml = (type, config, panoType?: string) => {
   const str = ref<string>("");
   switch (type) {
     case "preview":
-      let path = `${api.File_URL}panos/${config._key}/panos/${config.originName}.tiles`;
-      str.value = `<preview url="${path}/preview.jpg" />
+      let path = `${api.File_URL}panos/${config._key}/`;
+      str.value = `<preview url="${path}panos/${config.originName}.tiles/preview.jpg" />
         <image>
-            <cube url="${path}/%s/l%l/%v/l%l_%s_%v_%h.jpg"  multires="${config.multires}" />
+            <cube url="${
+              path +
+              (config.cubeUrl
+                ? config.cubeUrl
+                : `panos/${config.originName}.tiles/%s/l%l/%v/l%l_%s_%v_%h.jpg`)
+            }" multires="${config.multires}" />
           </image>
     `;
       break;

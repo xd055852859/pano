@@ -142,16 +142,9 @@ const getVideo = async () => {
     videoList.value = [...videoRes.data];
   }
 };
-// const getHostspotAth = () => {
-//   console.log(pano.value.get("hotspot[hotspot1]"));
-//   console.log(pano.value.get("hotspot[hotspot1].ath"));
-//   console.log(pano.value.get("hotspot[hotspot1].atv"));
-// };
 const changeText = (text) => {
-  console.log(text);
   let name = hotspotConfig.value.name + "text";
   if (text) {
-    console.log(pano.value.get(`layer[${name}]`));
     if (pano.value.get(`layer[${name}]`)) {
       pano.value.set(`layer[${name}].html`, text);
     } else {
@@ -159,7 +152,7 @@ const changeText = (text) => {
       pano.value.set(`layer[${name}].html`, text);
       pano.value.set(`layer[${name}].type`, "text");
       pano.value.set(`layer[${name}].align`, "top");
-      pano.value.set(`layer[${name}].css`, " color:#FFFFFF;font-size:14px");
+      pano.value.set(`layer[${name}].css`, "color:#FFFFFF;font-size:14px");
       pano.value.set(`layer[${name}].txtshadow`, "1 1 2.0 0x000000 0.5");
       pano.value.set(`layer[${name}].bg`, "false");
       pano.value.set(`layer[${name}].y`, "-20");
@@ -186,7 +179,7 @@ const changeHotspot = (type, value, oType?: string, ovalue?: string) => {
     videoUrl.value = videoUrl.value !== value ? value : "";
   } else if (hotspotIndex.value === 5) {
     mediaUrl.value = mediaUrl.value !== value ? value : "";
-  } else if (hotspotIndex.value === 1) {
+  } else if (hotspotIndex.value === 1&&type==="linkUrl") {
     value =
       value.includes("https://") || value.includes("http://")
         ? value
@@ -211,7 +204,6 @@ const updateMedia = (file, type) => {
       : ["video/*"];
   if (file) {
     uploadFile(file, mimeType, async (url, name) => {
-      console.log(url);
       if (type === "image") {
         imgList.value.push(url);
         changeHotspot("imageList", imgList.value);
@@ -244,7 +236,6 @@ const delImg = (index) => {
 };
 const deleteMedia = async () => {
   let key = "";
-  console.log();
   if (hotspotIndex.value === 5) {
     key = musicList.value[delIndex.value]._key;
     musicList.value.splice(delIndex.value, 1);
@@ -314,7 +305,6 @@ const delHotspot = () => {
     pano.value.call(`removelayer(${hotspotConfig.value.name}text)`);
   }
   delete obj[hotspotConfig.value.name];
-  console.log(obj);
   setHotspotObj({ ...obj });
   // setHotspotConfig(null);
   setHeaderNum(2);
@@ -322,7 +312,6 @@ const delHotspot = () => {
 watch(
   hotspotConfig,
   (newConfig, oldConfig) => {
-    console.log(newConfig?.name, oldConfig?.name);
     if (newConfig && newConfig?.name !== oldConfig?.name) {
       logo.value = newConfig.url;
       title.value = newConfig.title;
@@ -344,8 +333,9 @@ watch(
         case "openImage":
           hotspotType.value = "图片";
           imgList.value = newConfig.imageList;
-          switchMode.value = newConfig.switchMode === "loop" ? 1 : 0;
+          switchMode.value = newConfig.switchMode === "loop" ? 0 : 1;
           imgTime.value = newConfig.interval;
+          console.log(newConfig.interval);
           break;
         case "openVideo":
           hotspotType.value = "视频";

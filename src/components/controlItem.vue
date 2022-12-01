@@ -14,16 +14,14 @@ const props = defineProps<{
 }>();
 const viewPointList = ref<any>([]);
 const drag = ref<boolean>(false);
-
+const iconName = ref<string>("");
 onMounted(() => {
   if (
     viewPointArray.value &&
     viewPointArray.value.length > 0 &&
     (props.type === "viewPoint" || props.type === "all")
   ) {
-    console.log(viewPointArray.value);
     viewPointList.value = [...viewPointArray.value];
-    console.log(viewPointList.value);
   }
 });
 const changeHotspot = (type) => {
@@ -34,18 +32,47 @@ const changeHotspot = (type) => {
       break;
     case "loadUrl":
       name = "超链接";
+
       break;
     case "openImage":
       name = "图片";
+
       break;
     case "openVideo":
       name = "视频";
+
       break;
     case "openText":
       name = "文本";
+
       break;
     case "openAudio":
       name = "音频";
+
+      break;
+  }
+  return name;
+};
+const getIconName = (type) => {
+  let name = "";
+  switch (type) {
+    case "loadPano":
+      name = "hotspot1";
+      break;
+    case "loadUrl":
+      name = "hotspot2";
+      break;
+    case "openImage":
+      name = "hotspot3";
+      break;
+    case "openVideo":
+      name = "hotspot4";
+      break;
+    case "openText":
+      name = "hotspot5";
+      break;
+    case "openAudio":
+      name = "hotspot6";
       break;
   }
   return name;
@@ -69,7 +96,6 @@ const toPoint = (control) => {
   }
 };
 watch(viewPointList, (newList) => {
-  console.log(newList);
   let arr: any = [];
   newList.forEach((item, index) => {
     pano.value.set(`hotspot[${item.name}].html`, index + 1);
@@ -87,8 +113,13 @@ watch(viewPointList, (newList) => {
     <template v-if="type === 'hotspot' || type === 'all'">
       <template v-for="(value, key) in hotspotObj" :key="`hotspot${key}`">
         <div class="control-item-hotspot" @click="toPoint(value)">
+          <iconpark-icon
+            :name="getIconName(value.type)"
+            :size="20"
+            style="margin-right: 8px"
+          />
           {{ value.title ? value.title : "热点" }}
-          ( {{ changeHotspot(value.type) }} )
+          ({{ changeHotspot(value.type) }})
         </div>
         <el-divider border-style="dashed" />
       </template>
@@ -107,6 +138,11 @@ watch(viewPointList, (newList) => {
         <template #item="{ element }">
           <div>
             <div class="control-item-hotspot" @click="toPoint(element)">
+              <iconpark-icon
+                name="control4"
+                :size="20"
+                style="margin-right: 8px"
+              />
               导航点 {{ element.number }}
             </div>
             <el-divider border-style="dashed" />
@@ -120,6 +156,11 @@ watch(viewPointList, (newList) => {
           v-if="(type === 'text' || type === 'all') && value.type === 'text'"
         >
           <div class="control-item-text" @click="toPoint(value)">
+            <iconpark-icon
+              name="control2"
+              :size="20"
+              style="margin-right: 8px"
+            />
             {{ value.text }}
           </div>
           <el-divider border-style="dashed" />
@@ -149,12 +190,14 @@ watch(viewPointList, (newList) => {
     height: 40px;
     line-height: 40px;
     cursor: pointer;
+    @include flex(null, center, null);
   }
   .control-item-text {
     width: 100%;
     min-height: 40px;
     line-height: 40px;
     cursor: pointer;
+    @include flex(null, center, null);
   }
   .control-item-img {
     width: 100%;

@@ -6,7 +6,13 @@ import AutoImport from "unplugin-auto-import/vite";
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
-    vue(),
+    vue({
+      template: {
+        compilerOptions: {
+          isCustomElement: (tag) => tag === "iconpark-icon",
+        },
+      },
+    }),
     AutoImport({
       imports: ["vue", "vue-router"], // 自动导入vue和vue-router相关函数
       dts: "src/auto-import.d.ts", // 生成 `auto-import.d.ts` 全局声明
@@ -32,13 +38,5 @@ export default defineConfig({
     cors: true, // 允许跨域
 
     // 设置代理，根据我们项目实际情况配置
-    // proxy: {
-    //   '/api': {
-    //     target: 'http://xxx.xxx.xxx.xxx:8000',
-    //     changeOrigin: true,
-    //     secure: false,
-    //     rewrite: (path) => path.replace('/api/', '/')
-    //   }
-    // }
   },
 });

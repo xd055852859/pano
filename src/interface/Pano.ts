@@ -11,6 +11,8 @@ export interface PanoConfig {
   sandTable?: any;
   _key: string;
   littleplanet?: boolean;
+  vr?: boolean;
+  viewNum?: number;
 }
 
 export interface PanoTag {

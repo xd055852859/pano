@@ -5,11 +5,14 @@ import appStore from "@/store";
 import { ElMessage } from "element-plus";
 import { storeToRefs } from "pinia";
 import ProgressItem from "@/components/progressItem.vue";
+import { uploadFile } from "@/services/util";
 const { configNum } = storeToRefs(appStore.commonStore);
 const { sceneConfig, pano } = storeToRefs(appStore.panoStore);
 const { setSceneConfig } = appStore.panoStore;
 const specialArray = ref<any>("");
 const specialKey = ref<string>("");
+const specialName = ref<string>("");
+const specialScale = ref<string>("1.0");
 const skyUrl = ref<string>("");
 const groundUrl = ref<string>("");
 const skyPercent = ref<number>(50);
@@ -27,7 +30,6 @@ const getImage = async () => {
     limit: 500,
   })) as ResultProps;
   if (imageRes.msg === "OK") {
-    console.log(imageRes.data);
     imageList.value = [...imageRes.data];
   }
 };
@@ -40,7 +42,6 @@ const getSpecial = async () => {
         //@ts-ignore
         return item._key === sceneConfig.value.specialEffect._key;
       });
-      console.log(index);
       if (index !== -1) {
         specialKey.value = sceneConfig.value.specialEffect._key;
         pano.value.call(`addplugin(special)`);
@@ -48,9 +49,7 @@ const getSpecial = async () => {
           `plugin[special].url`,
           "https://cdn-3d.qingtime.cn/snow.js"
         );
-        console.log(specialArray.value[index].mode);
         if (specialArray.value[index].mode === "rain") {
-          console.log("雨");
           pano.value.set(`plugin[special].mode`, "rain");
           pano.value.call(`rain()`);
         } else {
@@ -60,6 +59,10 @@ const getSpecial = async () => {
               `plugin[special].imageurl`,
               specialArray.value[index].url
             );
+            specialScale.value = sceneConfig.value.specialEffect?.scale
+              ? sceneConfig.value.specialEffect.scale
+              : "1.0";
+            pano.value.set(`plugin[special].imagescale`, specialScale.value);
           }
           pano.value.call(`snowballs()`);
         }
@@ -82,14 +85,13 @@ const getSpecial = async () => {
 const removeSpecial = () => {
   pano.value.call(`removeplugin(special)`);
 };
-const addShade = (url, type) => {
-  console.log(url, type);
+const addShade = (url, type, scale?: string) => {
   pano.value.call(`addhotspot(${type}logo)`);
   pano.value.set(`hotspot[${type}logo].url`, url);
   pano.value.set(`hotspot[${type}logo].keep`, "true");
   pano.value.set(`hotspot[${type}logo].atv`, type === "sky" ? "-90" : "90");
   pano.value.set(`hotspot[${type}logo].ath`, "0");
-  pano.value.set(`hotspot[${type}logo].scale`, "1.0");
+  pano.value.set(`hotspot[${type}logo].scale`, scale ? scale : "1.0");
 };
 const removeShade = () => {
   pano.value.call(`removehotspot(skylogo)`);
@@ -102,6 +104,7 @@ const changeSpecial = (key) => {
   });
   if (index !== -1) {
     removeSpecial();
+    specialName.value = specialArray.value[index].name;
     pano.value.call(`addplugin(special)`);
     pano.value.set(`plugin[special].url`, "https://cdn-3d.qingtime.cn/snow.js");
     if (specialArray.value[index].mode === "rain") {
@@ -115,6 +118,7 @@ const changeSpecial = (key) => {
         );
       }
       pano.value.call(`snowballs()`);
+      pano.value.set(`plugin[special].imagescale`, specialScale.value);
     }
     setSceneConfig({
       specialEffect: {
@@ -125,27 +129,63 @@ const changeSpecial = (key) => {
       _key: sceneConfig.value?._key,
     });
   } else {
+    specialName.value = "";
     pano.value.call(`removeplugin(special)`);
     setSceneConfig({ specialEffect: {}, _key: sceneConfig.value?._key });
   }
 };
+const changeSpecialScale = (scale) => {
+  console.log(scale);
+  pano.value.set(`plugin[special].imagescale`, scale);
+  setSceneConfig({
+    specialEffect: {
+      ...sceneConfig.value?.specialEffect,
+      scale: scale,
+    },
+    _key: sceneConfig.value?._key,
+  });
+};
+const updateShade = (file, type) => {
+  let mimeType = ["image/*"];
+
+  if (file) {
+    uploadFile(file, mimeType, async (url) => {
+      if (type === "sky") {
+        skyUrl.value = url;
+      } else {
+        groundUrl.value = url;
+      }
+      changeShade(type, url);
+    });
+  }
+};
 const changeShade = (type, url) => {
   // if (sceneConfig.value?.shade) {
-
-  let obj = { ...sceneConfig.value?.shade };
-  obj = {
-    ...obj,
-    [type]: { ...[type], url: url },
-  };
-  if (url) {
-    addShade(url, type);
-  } else {
-    pano.value.call(`removehotspot(${type}logo)`);
+  if (url !== "上传") {
+    if (type === "sky") {
+      setSceneConfig({
+        shade: {
+          ...sceneConfig.value?.shade,
+          sky: { url: skyUrl.value, scale: skyScale.value },
+        },
+        _key: sceneConfig.value?._key,
+      });
+    } else {
+      setSceneConfig({
+        shade: {
+          ...sceneConfig.value?.shade,
+          ground: { url: groundUrl.value, scale: groundScale.value },
+        },
+        _key: sceneConfig.value?._key,
+      });
+    }
+    if (url) {
+      addShade(url, type);
+    } else {
+      pano.value.call(`removehotspot(${type}logo)`);
+    }
+    //
   }
-  if (!obj.sky.url && !obj.ground.url) {
-    obj = {};
-  }
-  setSceneConfig({ shade: { ...obj }, _key: sceneConfig.value?._key });
   // }
 };
 const changePercent = (percent, type) => {
@@ -155,7 +195,7 @@ const changePercent = (percent, type) => {
     setSceneConfig({
       shade: {
         ...sceneConfig.value?.shade,
-        sky: { ...sceneConfig.value?.shade.sky, scale: skyScale.value },
+        sky: { url: skyUrl.value, scale: skyScale.value },
       },
       _key: sceneConfig.value?._key,
     });
@@ -165,7 +205,7 @@ const changePercent = (percent, type) => {
     setSceneConfig({
       shade: {
         ...sceneConfig.value?.shade,
-        ground: { ...sceneConfig.value?.shade.sky, scale: groundScale.value },
+        ground: { url: groundUrl.value, scale: groundScale.value },
       },
       _key: sceneConfig.value?._key,
     });
@@ -178,24 +218,31 @@ const changePercent = (percent, type) => {
 watch(
   configNum,
   (newNum) => {
-    console.log(newNum);
     if (newNum === "3") {
       getSpecial();
       if (sceneConfig.value?.shade) {
+        console.log(sceneConfig.value?.shade);
         if (sceneConfig.value?.shade?.sky?.url) {
-          addShade(sceneConfig.value.shade.sky.url, "sky");
-          skyUrl.value = sceneConfig.value.shade.sky.url;
-          let scale = sceneConfig.value.shade.sky.scale;
-          console.log(+scale * 50);
+          let scale = sceneConfig.value.shade.sky.scale
+            ? sceneConfig.value.shade.sky.scale
+            : 1;
           skyPercent.value = +scale * 50;
           skyScale.value = scale;
+          addShade(sceneConfig.value.shade.sky.url, "sky", skyScale.value);
+          skyUrl.value = sceneConfig.value.shade.sky.url;
         }
         if (sceneConfig.value?.shade?.ground?.url) {
-          addShade(sceneConfig.value?.shade?.ground?.url, "ground");
-          groundUrl.value = sceneConfig.value.shade.ground.url;
-          let scale = sceneConfig.value.shade.ground.scale;
+          let scale = sceneConfig.value.shade.ground.scale
+            ? sceneConfig.value.shade.ground.scale
+            : 1;
           groundPercent.value = +scale * 50;
           groundScale.value = scale;
+          addShade(
+            sceneConfig.value?.shade?.ground?.url,
+            "ground",
+            groundScale.value
+          );
+          groundUrl.value = sceneConfig.value.shade.ground.url;
         }
       }
     } else {
@@ -209,38 +256,74 @@ watch(
 <template>
   <div class="pano-specialEffect">
     <div class="pano-item">
-      <div class="pano-item-title" style="width: 100%">页面特效</div>
-      <el-select
-        v-model="specialKey"
-        placeholder="请选择类型"
-        @change="changeSpecial"
+      <div class="pano-item-title" style="width: 100%">
+        <div>页面特效</div>
+        <el-select
+          v-model="specialKey"
+          placeholder="请选择类型"
+          @change="changeSpecial"
+        >
+          <el-option :key="''" :label="'无'" :value="''" />
+          <el-option
+            v-for="item in specialArray"
+            :key="item._key"
+            :label="item.name"
+            :value="item._key"
+          />
+        </el-select>
+      </div>
+    </div>
+    <div
+      class="pano-item"
+      v-if="specialName && specialName !== '下雨' && specialName !== '下雪'"
+      style="min-height: 30px"
+    >
+      <el-radio-group
+        v-model="specialScale"
+        @change="changeSpecialScale"
+        style="margin: 0px 10px 5px 10px"
       >
-        <el-option :key="''" :label="'无'" :value="''" />
-        <el-option
-          v-for="item in specialArray"
-          :key="item._key"
-          :label="item.name"
-          :value="item._key"
-        />
-      </el-select>
+        <el-radio :label="'0.3'" style="color: #fff">小</el-radio>
+        <el-radio :label="'0.5'" style="color: #fff">中</el-radio>
+        <el-radio :label="'1.0'" style="color: #fff">大</el-radio>
+      </el-radio-group>
     </div>
     <div class="pano-item">
-      <div class="pano-item-title" style="width: 100%">天空遮罩</div>
-      <!-- <div class="pano-item-box"></div> -->
-      <el-select
-        v-model="skyUrl"
-        placeholder="请选择天空遮罩"
-        @change="(val) => changeShade('sky', val)"
-      >
-        <el-option :key="''" :label="'无'" :value="''" />
-        <el-option
-          v-for="item in imageList"
-          :key="item.url"
-          :label="item.name"
-          :value="item.url"
-        />
-      </el-select>
+      <div class="pano-item-title" style="width: 100%">
+        <div>天空遮罩</div>
+        <el-select
+          v-model="skyUrl"
+          placeholder="请选择天空遮罩"
+          @change="(val) => changeShade('sky', val)"
+        >
+          <el-option :key="'无'" :label="'无'" :value="''" />
+          <el-option
+            :key="'默认'"
+            :label="'默认'"
+            :value="'https://cdn-pano.qingtime.cn/1664243905436_pano.png'"
+          />
+          <el-option :key="'上传'" :value="'上传'">
+            <div class="upload-button">
+              <div style="width: 100%">上传</div>
+              <input
+                type="file"
+                accept=".png,.jpg,.jpeg"
+                @change="
+                  //@ts-ignore
+                  updateShade($event.target.files[0], 'sky')
+                "
+                class="upload-img"
+              />
+            </div>
+          </el-option>
+        </el-select>
+      </div>
+      <div class="pano-specialEffect-shade">
+        推荐使用500 * 500图片
+        <img :src="skyUrl" alt="" v-if="skyUrl" />
+      </div>
     </div>
+
     <div class="pano-item">
       <div class="pano-item-title" style="width: 100%">缩放</div>
       <div class="pano-item-progress">
@@ -252,21 +335,41 @@ watch(
       </div>
     </div>
     <div class="pano-item">
-      <div class="pano-item-title" style="width: 100%">地面遮罩</div>
-      <el-select
-        v-model="groundUrl"
-        placeholder="请选择地面遮罩"
-        @change="(val) => changeShade('ground', val)"
-      >
-        <el-option :key="''" :label="'无'" :value="''" />
-        <el-option
-          v-for="item in imageList"
-          :key="item.url"
-          :label="item.name"
-          :value="item.url"
-        />
-      </el-select>
+      <div class="pano-item-title" style="width: 100%">
+        <div>地面遮罩</div>
+        <el-select
+          v-model="groundUrl"
+          placeholder="请选择地面遮罩"
+          @change="(val) => changeShade('ground', val)"
+        >
+          <el-option :key="''" :label="'无'" :value="''" />
+          <el-option
+            :key="'默认'"
+            :label="'默认'"
+            :value="'https://cdn-pano.qingtime.cn/1664243905436_pano.png'"
+          />
+          <el-option :key="'上传'" :value="'上传'">
+            <div class="upload-button">
+              <div style="width: 100%">上传</div>
+              <input
+                type="file"
+                accept=".png,.jpg,.jpeg"
+                @change="
+                  //@ts-ignore
+                  updateShade($event.target.files[0], 'ground')
+                "
+                class="upload-img"
+              />
+            </div>
+          </el-option>
+        </el-select>
+      </div>
+      <div class="pano-specialEffect-shade">
+        推荐使用500 * 500图片
+        <img :src="groundUrl" alt="" v-if="groundUrl" />
+      </div>
     </div>
+
     <div class="pano-item">
       <div class="pano-item-title" style="width: 100%">缩放</div>
       <div class="pano-item-progress">
@@ -285,6 +388,29 @@ watch(
   height: calc(100vh - 120px);
   padding: 5px 10px;
   box-sizing: border-box;
+  @include scroll();
+  .pano-specialEffect-shade {
+    width: 320px;
+    height: 320px;
+    position: relative;
+    z-index: 1;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    margin: 10px 0px;
+    font-size: 20px;
+    text-align: center;
+    line-height: 320px;
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      position: absolute;
+      top: 0px;
+      bottom: 0px;
+      left: 0px;
+      right: 0px;
+      z-index: 2;
+    }
+  }
 }
 </style>
 <style></style>

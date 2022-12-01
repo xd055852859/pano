@@ -6,9 +6,9 @@ import useXml from "@/hooks/useXml";
 
 import { storeToRefs } from "pinia";
 import { containsProp } from "@vueuse/shared";
-const { fovPano,previewPano, pano, panoConfig, sceneKey, sceneConfig } = storeToRefs(
-  appStore.panoStore
-);
+import { loadJS } from "@/services/util";
+const { fovPano, previewPano, pano, panoConfig, sceneKey, sceneConfig } =
+  storeToRefs(appStore.panoStore);
 const { setPano, setHotspotName, setFovPano, setPreviewPano } =
   appStore.panoStore;
 const props = defineProps<{
@@ -20,10 +20,9 @@ const krpano = ref<any>(null);
 const panoRef = ref<any>(null);
 
 onMounted(() => {
-  console.log(">>>>>");
   if (sceneConfig.value?.multires) {
-    console.log("<<<<<<<<<");
     init(sceneConfig.value);
+    // init(sceneConfig.value);
   }
 });
 const init = (config) => {
@@ -32,7 +31,7 @@ const init = (config) => {
   embedpano({
     id: "krpanoSWFObject" + props.type,
     xml: props.type === "preview" ? config.xmlPath : "./common.xml",
-    // xml: config.xmlPath,
+    // xml: "https://panodata2.qingtime.cn/panos/1416806303/tour.xml",
     target: props.panoId,
     consolelog: true, // trace krpano messages also to the browser console
     passQueryParameters: true, // pass query parameters of the url to krpano
@@ -41,7 +40,6 @@ const init = (config) => {
 
     onready: (newPano) => {
       if (props.type === "main" || props.type === "fov") {
-        // console.log(newPano.get(`cube.multries`));
         clearPano(newPano, config);
         if (props.type === "main") {
           setPano(newPano);
@@ -51,7 +49,7 @@ const init = (config) => {
           setFovPano(newPano);
         }
       } else if (props.type === "preview") {
-        if (!previewPano.value&&panoConfig.value?.littleplanet) {
+        if (!previewPano.value && panoConfig.value?.littleplanet) {
           newPano.call("skin_setup_littleplanetintro");
         }
         setPreviewPano(newPano);
@@ -67,14 +65,12 @@ const clearPano = (newPano, config?: any) => {
   //控制视角
   let view = useXml("fov", config, props.type);
   let xmlstring = `<krpano>
+      <include url="./plugins/clear.xml" />
       <include url="./plugins/specialEffect.xml" />
-
   	 ${props.type === "main" ? `<include url="./plugins/drag.xml" />` : ""}
      ${view}
      ${preview}
-
      </krpano>`;
-  console.log(xmlstring);
   newPano.call(
     "loadxml(" + escape(xmlstring) + ", null, REMOVESCENES, BLEND(0.5));"
   );

@@ -25,7 +25,6 @@ onBeforeMount(() => {
     socket.on("connect", () => {
       socket.emit("login", token);
       socket.on("createOK", (data) => {
-        console.log(data)
         //删除
         setLeftNum(0);
         setSceneKey(data._key);

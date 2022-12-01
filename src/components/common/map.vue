@@ -28,21 +28,17 @@ onMounted(() => {
   initMap();
 });
 const initMap = () => {
-  console.log(props.mapId);
-
   AMapLoader.load({
     key: "70beeffb8fc9537f6d450fd3747b70c9", // 申请好的Web端开发者Key，首次调用 load 时必填
     version: "2.0", // 指定要加载的 JSAPI 的版本，缺省时默认为 1.4.15
     plugins: [], // 需要使用的的插件列表，如比例尺'AMap.Scale'等
   })
     .then((AMap) => {
-      console.log(AMap);
       amap.value = new AMap.Map(props.mapId, {
         viewMode: "3D", //是否为3D地图模式
         zoom: props.zoom ? props.zoom : 5, //初始化地图级别
         center: props.center ? props.center : [116.397428, 39.90923],
       });
-      console.log(props.zoom, props.center);
       amapData.value = AMap;
       // if (props.type === "sandTable") {
       //   if (props.data) {
@@ -51,7 +47,6 @@ const initMap = () => {
 
       // } else {
       if (props.data) {
-        console.log(props.data);
         if (props.data.length > 0) {
           setPointerArray(props.data);
         }
@@ -90,7 +85,6 @@ const setPointer = (lng, lat) => {
     markerKeyArr.value.push(props.targetScene._key);
     markerArr.value.push(marker.value);
   } else {
-    console.log(marker.value);
     markerArr.value[markIndex].setPosition([lng, lat]);
   }
 
@@ -131,7 +125,6 @@ const setPointerArray = (arr) => {
       },
     });
     if (marker) {
-      console.log(item._key);
       //@ts-ignore
       marker.on("click", () => {
         clickMarker(item._key);
@@ -148,13 +141,11 @@ const clickMap = (e) => {
   }
 };
 const clickMarker = (key) => {
-  console.log(key);
   emits("chooseMarker", key);
 };
 const getLocation = () => {
   let arr: any = [];
   markerArr.value.forEach((item) => {
-    console.log(item.getPosition());
     arr.push([item.getPosition().lng, item.getPosition().lat]);
   });
   return [

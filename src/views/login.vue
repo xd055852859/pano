@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { is_mobile } from "@/services/util";
+import axios from "axios";
 import logoSvg from "../assets/svg/logo.svg";
 
 const router = useRouter();
@@ -13,7 +14,6 @@ const login = () => {
   let redirect = encodeURIComponent(
     `${window.location.protocol}//${window.location.host}/#/view`
   );
-  console.log(redirect);
   localStorage.clear();
   // `https://account.qingtime.cn?apphigh=50&redirect=&logo=https://workfly.qingtime.cn/1650849409262_workingVip.png`;
   let href: string = `https://account.qingtime.cn/?app=10&apphigh=60&logo=https://cdn-pano.qingtime.cn/1661587220929_pano.svg&redirect=${redirect}`;
@@ -27,7 +27,11 @@ const login = () => {
 <template>
   <div class="welcome">
     <div class="logo-img dp-center-center">
-      <img :src="'https://cdn-pano.qingtime.cn/1661587220929_pano.svg'" alt="" class="logo" />
+      <img
+        :src="'https://cdn-pano.qingtime.cn/1661587220929_pano.svg'"
+        alt=""
+        class="logo"
+      />
       <div class="logo-title">时光全景</div>
     </div>
     <div class="logo-button dp-center-center">
@@ -90,5 +94,4 @@ const login = () => {
   }
 }
 </style>
-<style>
-</style>
+<style></style>
